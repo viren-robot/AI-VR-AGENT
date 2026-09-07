@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRAFT/VR — Generative Blueprint &amp; Model Tool</title>
+<style>
+  :root{
+    --bg: #0B1929;
+    --panel: #0F2036;
+    --panel-raised: #142943;
+    --grid-line: #1E3A57;
+    --text: #DCE8F2;
+    --text-dim: #6F8AA3;
+    --cyan: #5EC8E8;
+    --amber: #E8A33D;
+    --error: #E8615E;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; height:100%; background:var(--bg); color:var(--text); font-family:var(--font-sans); overflow:hidden; }
+  button{ font-family:inherit; }
+  input,select{ font-family:inherit; }
+  ::selection{ background:var(--cyan); color:var(--bg); }
+
+  .app{ display:flex; height:100vh; width:100vw; }
+
+  /* ---------- Sidebar ---------- */
+  .panel{
+    width:340px; min-width:340px; background:var(--panel);
+    border-right:1px solid var(--grid-line);
+    display:flex; flex-direction:column;
+    padding:20px 18px; overflow-y:auto;
+  }
+  .brand{ margin-bottom:22px; }
+  .brand .mark{ font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; color:var(--cyan); }
+  .brand h1{ font-size:20px; font-weight:700; margin:4px 0 0; letter-spacing:-.01em; }
+  .brand p{ font-size:12.5px; color:var(--text-dim); margin:6px 0 0; line-height:1.5; }
+
+  label.field-label{ display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-dim); letter-spacing:.06em; margin:16px 0 6px; }
+
+  textarea{
+    width:100%; min-height:110px; resize:vertical;
+    background:var(--bg); border:1px solid var(--grid-line); color:var(--text);
+    border-radius:2px; padding:10px 11px; font-size:14px; font-family:var(--font-sans);
+    line-height:1.5;
+  }
+  textarea:focus{ outline:none; border-color:var(--cyan); box-shadow:0 0 0 1px var(--cyan); }
+
+  .mode-row{ display:flex; gap:6px; margin-top:8px; }
+  .mode-btn{
+    flex:1; background:var(--bg); border:1px solid var(--grid-line); color:var(--text-dim);
+    padding:8px 4px; font-size:12px; border-radius:2px; cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  .mode-btn:hover{ color:var(--text); }
+  .mode-btn.active{ border-color:var(--amber); color:var(--amber); }
+
+  .generate-btn{
+    margin-top:16px; width:100%; background:var(--amber); color:#1A1104; border:none;
+    font-weight:700; font-size:14px; padding:12px; border-radius:2px; cursor:pointer;
+    letter-spacing:.01em; transition:filter .15s;
+  }
+  .generate-btn:hover{ filter:brightness(1.08); }
+  .generate-btn:disabled{ background:var(--grid-line); color:var(--text-dim); cursor:default; }
+
+  .status{ font-family:var(--font-mono); font-size:12px; margin-top:10px; min-height:32px; color:var(--text-dim); line-height:1.5; }
+  .status.error{ color:var(--error); }
+  .status.ok{ color:var(--cyan); }
+  .status.info{ color:var(--amber); }
+
+  .history{ margin-top:22px; flex:1; }
+  .history-item{
+    padding:9px 10px; border:1px solid var(--grid-line); border-radius:2px; margin-bottom:6px;
+    font-size:12.5px; cursor:pointer; color:var(--text-dim); transition:border-color .15s,color .15s;
+  }
+  .history-item:hover{ border-color:var(--cyan); color:var(--text); }
+  .history-empty{ font-size:12.5px; color:var(--text-dim); font-style:italic; }
+
+  .titleblock{
+    margin-top:18px; border-top:1px solid var(--grid-line); padding-top:12px;
+    font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); display:grid;
+    grid-template-columns:1fr 1fr; gap:4px 10px;
+  }
+  .titleblock b{ color:var(--text); font-weight:600; }
+
+  /* ---------- Viewport ---------- */
+  .viewport{
+    flex:1; position:relative; display:flex; flex-direction:column;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size:32px 32px;
+    background-color:var(--bg);
+  }
+  .toolbar-row{
+    display:flex; align-items:center; gap:10px; padding:14px 18px 0; z-index:5; flex-wrap:wrap;
+  }
+  .viewport-tabs{ display:flex; gap:0; }
+  .viewport-tabs.hidden{ display:none; }
+  .vtab{
+    background:transparent; border:1px solid var(--grid-line); border-bottom:none;
+    color:var(--text-dim); font-family:var(--font-mono); font-size:11.5px; padding:8px 16px;
+    cursor:pointer; letter-spacing:.05em;
+  }
+  .vtab.active{ color:var(--cyan); border-color:var(--cyan); background:var(--bg); }
+
+  .edit-toggle{
+    background:var(--panel); border:1px solid var(--grid-line); color:var(--text-dim);
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; padding:7px 12px;
+    border-radius:2px; cursor:pointer; display:none;
+  }
+  .edit-toggle.visible{ display:inline-block; }
+  .edit-toggle.on{ border-color:var(--amber); color:var(--amber); background:rgba(232,163,61,.08); }
+
+  .export-row{ display:none; align-items:center; gap:6px; margin-left:auto; }
+  .export-row.visible{ display:flex; }
+  .export-label{ font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:.08em; margin-right:2px; }
+  .export-btn{
+    background:var(--panel); border:1px solid var(--grid-line); color:var(--text-dim);
+    font-family:var(--font-mono); font-size:11px; padding:7px 10px; border-radius:2px; cursor:pointer;
+  }
+  .export-btn:hover{ border-color:var(--cyan); color:var(--cyan); }
+
+  #canvas-container{ flex:1; position:relative; }
+  #canvas-container canvas{ display:block; width:100%; height:100%; }
+
+  .blueprint-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:20px; }
+  #blueprint-svg{ max-width:100%; max-height:100%; background:var(--bg); border:1px solid var(--grid-line); }
+
+  .empty-state{
+    flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px;
+    color:var(--text-dim); text-align:center; padding:20px;
+  }
+  .empty-state .glyph{ font-size:34px; color:var(--grid-line); }
+  .empty-state h2{ font-size:16px; color:var(--text); font-weight:600; margin:0; }
+  .empty-state p{ font-size:13px; max-width:320px; line-height:1.6; margin:0; }
+
+  #vr-button{
+    position:absolute; bottom:22px; right:22px; z-index:10;
+    background:var(--panel-raised); border:1px solid var(--cyan); color:var(--cyan);
+    font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; padding:11px 18px;
+    border-radius:2px; cursor:pointer; display:none;
+  }
+  #vr-button:hover{ background:var(--cyan); color:var(--bg); }
+  #vr-button.visible{ display:block; }
+
+  #cardboard-button{
+    position:absolute; bottom:78px; right:22px; z-index:10;
+    background:var(--panel-raised); border:1px solid var(--cyan); color:var(--cyan);
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; padding:9px 14px;
+    border-radius:2px; cursor:pointer; display:none;
+  }
+  #cardboard-button.visible{ display:block; }
+  #cardboard-button:hover{ background:var(--cyan); color:var(--bg); }
+
+  #canvas-container.cardboard-active{
+    position:fixed; inset:0; z-index:998; background:#000;
+  }
+  #exit-cardboard{
+    display:none; position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:1000;
+    background:rgba(15,32,54,.9); border:1px solid var(--amber); color:var(--amber);
+    font-family:var(--font-mono); font-size:12px; letter-spacing:.06em; padding:9px 18px;
+    border-radius:20px; cursor:pointer;
+  }
+  #exit-cardboard.visible{ display:block; }
+
+  #add-button{
+    position:absolute; bottom:22px; left:22px; z-index:10;
+    background:var(--panel-raised); border:1px solid var(--amber); color:var(--amber);
+    font-family:var(--font-mono); font-size:12px; letter-spacing:.06em; padding:11px 16px;
+    border-radius:2px; cursor:pointer; display:none;
+  }
+  #add-button.visible{ display:block; }
+  #add-button:hover{ background:var(--amber); color:#1A1104; }
+
+  .hint-badge{
+    position:absolute; top:60px; right:18px; z-index:10; font-family:var(--font-mono); font-size:10.5px;
+    color:var(--text-dim); border:1px solid var(--grid-line); padding:5px 9px; border-radius:2px;
+    background:var(--panel);
+  }
+
+  /* ---------- Inspector ---------- */
+  .inspector{
+    position:absolute; top:60px; right:18px; width:260px; z-index:20;
+    background:var(--panel-raised); border:1px solid var(--amber); border-radius:2px;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .inspector-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 12px; border-bottom:1px solid var(--grid-line);
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; color:var(--amber);
+  }
+  .insp-close{ background:none; border:none; color:var(--text-dim); font-size:16px; cursor:pointer; line-height:1; }
+  .insp-close:hover{ color:var(--text); }
+  .insp-body{ padding:10px 12px; display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; }
+  .insp-row{ display:flex; flex-direction:column; gap:3px; }
+  .insp-row.pair{ flex-direction:row; gap:8px; }
+  .insp-row.pair > div{ flex:1; display:flex; flex-direction:column; gap:3px; }
+  .insp-row label{ font-family:var(--font-mono); font-size:9.5px; color:var(--text-dim); letter-spacing:.05em; }
+  .insp-row input[type=text], .insp-row input[type=number], .insp-row select{
+    background:var(--bg); border:1px solid var(--grid-line); color:var(--text);
+    padding:6px 7px; font-size:12.5px; border-radius:2px; width:100%;
+  }
+  .insp-row input[type=color]{ width:100%; height:28px; background:var(--bg); border:1px solid var(--grid-line); border-radius:2px; padding:2px; }
+  .insp-actions{ display:flex; gap:6px; padding:10px 12px; border-top:1px solid var(--grid-line); }
+  .insp-apply{ flex:1; background:var(--amber); color:#1A1104; border:none; padding:9px; font-weight:700; font-size:12px; border-radius:2px; cursor:pointer; }
+  .insp-delete{ background:transparent; border:1px solid var(--error); color:var(--error); padding:9px 12px; font-size:12px; border-radius:2px; cursor:pointer; }
+
+  body.edit-on #blueprint-svg [data-idx]{ cursor:pointer; }
+  body.edit-on #canvas-container canvas{ cursor:crosshair; }
+
+  @media (max-width:760px){
+    .app{ flex-direction:column; }
+    .panel{ width:100%; min-width:0; max-height:42vh; border-right:none; border-bottom:1px solid var(--grid-line); }
+    .viewport{ flex:1; min-height:58vh; }
+    #vr-button{ bottom:14px; right:14px; }
+    #cardboard-button{ bottom:70px; right:14px; }
+    #add-button{ bottom:14px; left:14px; }
+    .inspector{ width:calc(100% - 36px); right:18px; }
+    .toolbar-row{ padding:10px 12px 0; }
+    .export-row{ margin-left:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="panel">
+    <div class="brand">
+      <div class="mark">DRAFT / VR</div>
+      <h1>Generative drafting tool</h1>
+      <p>Describe a part, mechanism, or object. Get a blueprint, a 3D model, or both — edit it by hand, then export or step into it.</p>
+    </div>
+
+    <label class="field-label">DESCRIPTION</label>
+    <textarea id="desc-input" placeholder="e.g. a 4-wheeled camera rover chassis, 180mm long, with a mast-mounted camera pod and two side motor pods"></textarea>
+
+    <label class="field-label">OUTPUT</label>
+    <div class="mode-row">
+      <button class="mode-btn active" data-mode="blueprint">Blueprint</button>
+      <button class="mode-btn" data-mode="3d">3D Model</button>
+      <button class="mode-btn" data-mode="both">Both</button>
+    </div>
+
+    <button class="generate-btn" id="generate-btn">Generate</button>
+    <div class="status" id="status"></div>
+
+    <label class="field-label">HISTORY</label>
+    <div class="history" id="history">
+      <div class="history-empty">Nothing drafted yet.</div>
+    </div>
+
+    <div class="titleblock" id="titleblock">
+      <div>DWG NO</div><div><b id="tb-num">—</b></div>
+      <div>SCALE</div><div><b id="tb-scale">—</b></div>
+      <div>DATE</div><div><b id="tb-date">—</b></div>
+      <div>STATUS</div><div><b id="tb-status">IDLE</b></div>
+    </div>
+  </aside>
+
+  <main class="viewport">
+    <div class="toolbar-row">
+      <div class="viewport-tabs hidden" id="viewport-tabs">
+        <button class="vtab active" data-view="blueprint">BLUEPRINT</button>
+        <button class="vtab" data-view="3d">3D MODEL</button>
+      </div>
+      <button class="edit-toggle" id="edit-toggle">EDIT ○</button>
+      <div class="export-row" id="export-row">
+        <span class="export-label">EXPORT</span>
+        <button class="export-btn" data-export="png">PNG</button>
+        <button class="export-btn" data-export="jpg">JPG</button>
+        <button class="export-btn" data-export="stl">STL</button>
+        <button class="export-btn" data-export="obj">OBJ</button>
+        <button class="export-btn" data-export="3mf">3MF</button>
+        <button class="export-btn" data-export="step">STEP</button>
+      </div>
+    </div>
+
+    <div class="empty-state" id="empty-state">
+      <div class="glyph">▦</div>
+      <h2>Nothing on the board yet</h2>
+      <p>Type a description on the left, pick an output type, and hit Generate. The result renders here — click EDIT to tweak it by hand, export it, or view 3D models in VR.</p>
+    </div>
+
+    <div id="canvas-container" style="display:none;"></div>
+    <div class="blueprint-wrap" id="blueprint-wrap" style="display:none;">
+      <svg id="blueprint-svg" width="800" height="520" viewBox="0 0 800 520"></svg>
+    </div>
+
+    <div class="hint-badge" id="vr-hint" style="display:none;">no VR headset detected</div>
+    <button id="vr-button">ENTER VR ⬡</button>
+    <button id="cardboard-button">CARDBOARD 🥽</button>
+    <button id="add-button">+ ADD</button>
+
+    <div class="inspector" id="inspector" style="display:none;">
+      <div class="inspector-head">
+        <span id="insp-title">EDIT ELEMENT</span>
+        <button class="insp-close" id="insp-close">×</button>
+      </div>
+      <div class="insp-body" id="insp-body"></div>
+      <div class="insp-actions">
+        <button class="insp-apply" id="insp-apply">Apply</button>
+        <button class="insp-delete" id="insp-delete">Delete</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<button id="exit-cardboard">✕ EXIT</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  const EXPORT_SCALE_MM = 100; // 1 scene unit == 10cm == 100mm real-world for STL/OBJ/3MF
+
+  // ---------------- State ----------------
+  let mode = "blueprint";
+  let activeView = "blueprint";
+  let currentData = { blueprint:null, model:null };
+  let history = [];
+  let editMode = false;
+  let selection = null; // { kind:'blueprint'|'3d', idx:number, isNew:bool }
+
+  const els = {
+    desc: document.getElementById('desc-input'),
+    modeBtns: document.querySelectorAll('.mode-btn'),
+    genBtn: document.getElementById('generate-btn'),
+    status: document.getElementById('status'),
+    history: document.getElementById('history'),
+    tabs: document.getElementById('viewport-tabs'),
+    vtabs: document.querySelectorAll('.vtab'),
+    empty: document.getElementById('empty-state'),
+    canvasWrap: document.getElementById('canvas-container'),
+    blueprintWrap: document.getElementById('blueprint-wrap'),
+    svg: document.getElementById('blueprint-svg'),
+    vrBtn: document.getElementById('vr-button'),
+    vrHint: document.getElementById('vr-hint'),
+    cardboardBtn: document.getElementById('cardboard-button'),
+    exitCardboardBtn: document.getElementById('exit-cardboard'),
+    addBtn: document.getElementById('add-button'),
+    editToggle: document.getElementById('edit-toggle'),
+    exportRow: document.getElementById('export-row'),
+    inspector: document.getElementById('inspector'),
+    inspTitle: document.getElementById('insp-title'),
+    inspBody: document.getElementById('insp-body'),
+    inspApply: document.getElementById('insp-apply'),
+    inspDelete: document.getElementById('insp-delete'),
+    inspClose: document.getElementById('insp-close'),
+    tbNum: document.getElementById('tb-num'),
+    tbScale: document.getElementById('tb-scale'),
+    tbDate: document.getElementById('tb-date'),
+    tbStatus: document.getElementById('tb-status'),
+  };
+
+  els.modeBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      els.modeBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+    });
+  });
+
+  els.vtabs.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      els.vtabs.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      showView(btn.dataset.view);
+    });
+  });
+
+  els.editToggle.addEventListener('click', ()=>{
+    editMode = !editMode;
+    els.editToggle.classList.toggle('on', editMode);
+    els.editToggle.textContent = editMode ? 'EDIT ●' : 'EDIT ○';
+    document.body.classList.toggle('edit-on', editMode);
+    els.addBtn.classList.toggle('visible', editMode && (currentData.blueprint || currentData.model));
+    if(!editMode) closeInspector();
+  });
+
+  els.addBtn.addEventListener('click', ()=>{
+    if(activeView === 'blueprint') openInspectorNewBlueprint();
+    else openInspectorNew3D();
+  });
+
+  els.inspClose.addEventListener('click', closeInspector);
+
+  function setStatus(msg, kind){
+    els.status.textContent = msg || '';
+    els.status.className = 'status' + (kind ? ' '+kind : '');
+  }
+
+  // ---------------- Persistent history (window.storage) ----------------
+  async function loadHistory(){
+    try{
+      const res = await window.storage.get('draft-vr-history', false);
+      if(res && res.value){ history = JSON.parse(res.value); renderHistory(); }
+    }catch(e){ /* no history yet */ }
+  }
+  async function saveHistory(){
+    try{ await window.storage.set('draft-vr-history', JSON.stringify(history.slice(0,20)), false); }
+    catch(e){ console.warn('history save failed', e); }
+  }
+  function renderHistory(){
+    if(!history.length){ els.history.innerHTML = '<div class="history-empty">Nothing drafted yet.</div>'; return; }
+    els.history.innerHTML = '';
+    history.forEach((item, idx)=>{
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      div.textContent = item.description.length > 54 ? item.description.slice(0,54)+'…' : item.description;
+      div.addEventListener('click', ()=> loadFromHistory(idx));
+      els.history.appendChild(div);
+    });
+  }
+  function loadFromHistory(idx){
+    const item = history[idx];
+    if(!item) return;
+    els.desc.value = item.description;
+    currentData = { blueprint:item.blueprint||null, model:item.model||null };
+    updateTitleblock(item.description, item.blueprint ? item.blueprint.scale : '1:1');
+    els.tbStatus.textContent = 'LOADED';
+    presentResults();
+  }
+
+  // ---------------- AI calls ----------------
+  async function callClaude(systemPrompt, userPrompt){
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }]
+      })
+    });
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    if(!textBlock) throw new Error('No response content');
+    let clean = textBlock.text.trim();
+    clean = clean.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+    return JSON.parse(clean);
+  }
+
+  function generateBlueprint(description){
+    const sys = "You output ONLY raw JSON, no prose, no markdown fences. You are a technical draftsman turning a short description into a simple 2D orthographic blueprint diagram on an 800x520 canvas. JSON schema: {\"title\":string,\"scale\":string (e.g. '1:10'),\"elements\":[{\"type\":\"rect\"|\"line\"|\"circle\"|\"text\"|\"dim\",\"x\":n,\"y\":n,\"w\":n,\"h\":n,\"x2\":n,\"y2\":n,\"r\":n,\"label\":string,\"color\":\"#hex\"}]}. Use 6-14 elements. Keep all coordinates within 40-760 x and 40-480 y. Use 'dim' type for dimension lines (x,y to x2,y2 with a label like '180mm'). Use 'text' for part labels. Default colors: shapes '#5EC8E8', dims '#E8A33D', text '#DCE8F2' unless a color is meaningful.";
+    return callClaude(sys, "Description: " + description);
+  }
+
+  function generateModel(description){
+    const sys = "You output ONLY raw JSON, no prose, no markdown fences. You are turning a short description into a procedural 3D scene made of primitives. JSON schema: {\"title\":string,\"shapes\":[{\"type\":\"box\"|\"sphere\"|\"cylinder\"|\"cone\",\"position\":[x,y,z],\"size\":[x,y,z] (box only, in units where 1=10cm),\"radius\":n (sphere/cylinder/cone),\"height\":n (cylinder/cone),\"rotation\":[x,y,z] (radians, optional),\"color\":\"#hex\"}]}. CRITICAL: decompose the object into every major visible sub-part, not just its main body — a chair needs a seat, back, and separate legs; a drone needs a central body PLUS one arm per rotor extending outward PLUS a motor/prop hub at the tip of each arm; a car needs a body PLUS 4 separate wheels; a robot arm needs a base PLUS each joint segment as its own shape. Use rotation and position together so parts like arms radiate outward from the body at the correct angles rather than overlapping it. Use 6-12 shapes depending on how many sub-parts the object genuinely has, keep the assembly centered near origin, scale so the whole thing fits within roughly -3 to 3 on each axis.";
+    return callClaude(sys, "Description: " + description);
+  }
+
+  els.genBtn.addEventListener('click', async ()=>{
+    const description = els.desc.value.trim();
+    if(!description){ setStatus('Type a description first.', 'error'); return; }
+
+    els.genBtn.disabled = true;
+    setStatus('Drafting…');
+    els.tbStatus.textContent = 'DRAFTING';
+    closeInspector();
+
+    try{
+      let blueprint = null, model = null;
+      if(mode === 'blueprint' || mode === 'both'){ blueprint = await generateBlueprint(description); }
+      if(mode === '3d' || mode === 'both'){ model = await generateModel(description); }
+      currentData = { blueprint, model };
+      updateTitleblock(description, blueprint ? blueprint.scale : '1:1');
+      els.tbStatus.textContent = 'DONE';
+      setStatus('Done.', 'ok');
+
+      history.unshift({ description, blueprint, model, ts: Date.now() });
+      renderHistory();
+      saveHistory();
+
+      presentResults();
+    }catch(err){
+      console.error(err);
+      setStatus('Generation failed — try rephrasing.', 'error');
+      els.tbStatus.textContent = 'ERROR';
+    }finally{
+      els.genBtn.disabled = false;
+    }
+  });
+
+  function updateTitleblock(description, scale){
+    els.tbNum.textContent = 'DV-' + String(Math.abs(hashCode(description)) % 9000 + 1000);
+    els.tbScale.textContent = scale || '—';
+    els.tbDate.textContent = new Date().toISOString().slice(0,10);
+  }
+  function hashCode(str){
+    let h = 0;
+    for(let i=0;i<str.length;i++){ h = ((h<<5)-h) + str.charCodeAt(i); h |= 0; }
+    return h;
+  }
+
+  // ---------------- Presenting results ----------------
+  function presentResults(){
+    els.empty.style.display = 'none';
+    const hasBoth = currentData.blueprint && currentData.model;
+    if(hasBoth){ els.tabs.classList.remove('hidden'); showView('blueprint'); }
+    else if(currentData.model){ els.tabs.classList.add('hidden'); showView('3d'); }
+    else { els.tabs.classList.add('hidden'); showView('blueprint'); }
+    els.addBtn.classList.toggle('visible', editMode);
+  }
+
+  function showView(view){
+    activeView = view;
+    els.vtabs.forEach(b=> b.classList.toggle('active', b.dataset.view === view));
+    closeInspector();
+    updateExportRow();
+    if(view === 'blueprint' && currentData.blueprint){
+      els.canvasWrap.style.display = 'none';
+      els.blueprintWrap.style.display = 'flex';
+      els.vrBtn.classList.remove('visible');
+      els.editToggle.classList.add('visible');
+      renderBlueprint(currentData.blueprint);
+    } else if(view === '3d' && currentData.model){
+      els.blueprintWrap.style.display = 'none';
+      els.canvasWrap.style.display = 'block';
+      els.editToggle.classList.add('visible');
+      renderModel(currentData.model);
+      checkVRSupport();
+      els.cardboardBtn.classList.toggle('visible', typeof DeviceOrientationEvent !== 'undefined');
+    }
+  }
+
+  function updateExportRow(){
+    const hasData = (activeView === 'blueprint' && currentData.blueprint) || (activeView === '3d' && currentData.model);
+    els.exportRow.classList.toggle('visible', !!hasData);
+    els.exportRow.querySelectorAll('.export-btn').forEach(btn=>{
+      const t = btn.dataset.export;
+      const show3d = ['stl','obj','3mf','step'].includes(t);
+      btn.style.display = (activeView === '3d') ? (show3d ? 'inline-block':'none') : (show3d ? 'none':'inline-block');
+    });
+  }
+
+  // ---------------- Blueprint (SVG) rendering ----------------
+  function renderBlueprint(bp){
+    const svg = els.svg;
+    svg.innerHTML = '';
+    const ns = 'http://www.w3.org/2000/svg';
+
+    const border = document.createElementNS(ns,'rect');
+    border.setAttribute('x',10); border.setAttribute('y',10);
+    border.setAttribute('width',780); border.setAttribute('height',500);
+    border.setAttribute('fill','none'); border.setAttribute('stroke','#1E3A57');
+    svg.appendChild(border);
+
+    (bp.elements || []).forEach((el, idx)=>{
+      let node;
+      const defaultColor = el.type === 'dim' ? '#E8A33D' : (el.type === 'text' ? '#DCE8F2' : '#5EC8E8');
+      const color = el.color || defaultColor;
+
+      if(el.type === 'rect'){
+        node = document.createElementNS(ns,'rect');
+        node.setAttribute('x', el.x); node.setAttribute('y', el.y);
+        node.setAttribute('width', el.w); node.setAttribute('height', el.h);
+        node.setAttribute('fill','none'); node.setAttribute('stroke',color); node.setAttribute('stroke-width','1.5');
+      } else if(el.type === 'circle'){
+        node = document.createElementNS(ns,'circle');
+        node.setAttribute('cx', el.x); node.setAttribute('cy', el.y); node.setAttribute('r', el.r);
+        node.setAttribute('fill','none'); node.setAttribute('stroke',color); node.setAttribute('stroke-width','1.5');
+      } else if(el.type === 'line'){
+        node = document.createElementNS(ns,'line');
+        node.setAttribute('x1', el.x); node.setAttribute('y1', el.y);
+        node.setAttribute('x2', el.x2); node.setAttribute('y2', el.y2);
+        node.setAttribute('stroke',color); node.setAttribute('stroke-width','1.5');
+      } else if(el.type === 'dim'){
+        node = document.createElementNS(ns,'line');
+        node.setAttribute('x1', el.x); node.setAttribute('y1', el.y);
+        node.setAttribute('x2', el.x2); node.setAttribute('y2', el.y2);
+        node.setAttribute('stroke',color); node.setAttribute('stroke-width','1'); node.setAttribute('stroke-dasharray','4,3');
+        node.setAttribute('data-idx', idx);
+        svg.appendChild(node);
+        if(el.label){
+          const t = document.createElementNS(ns,'text');
+          t.setAttribute('x', (el.x+el.x2)/2); t.setAttribute('y', (el.y+el.y2)/2 - 6);
+          t.setAttribute('fill',color); t.setAttribute('font-size','11'); t.setAttribute('font-family','ui-monospace,monospace');
+          t.setAttribute('text-anchor','middle'); t.textContent = el.label;
+          t.setAttribute('data-idx', idx);
+          t.addEventListener('click', ()=>{ if(editMode) openInspectorForBlueprint(idx); });
+          svg.appendChild(t);
+        }
+        node.addEventListener('click', ()=>{ if(editMode) openInspectorForBlueprint(idx); });
+        return;
+      } else if(el.type === 'text'){
+        node = document.createElementNS(ns,'text');
+        node.setAttribute('x', el.x); node.setAttribute('y', el.y);
+        node.setAttribute('fill',color); node.setAttribute('font-size','12'); node.setAttribute('font-family','ui-monospace,monospace');
+        node.textContent = el.label || '';
+      }
+      if(node){
+        node.setAttribute('data-idx', idx);
+        node.addEventListener('click', ()=>{ if(editMode) openInspectorForBlueprint(idx); });
+        svg.appendChild(node);
+      }
+    });
+
+    if(bp.title){
+      const t = document.createElementNS(ns,'text');
+      t.setAttribute('x', 24); t.setAttribute('y', 34);
+      t.setAttribute('fill','#6F8AA3'); t.setAttribute('font-size','11'); t.setAttribute('font-family','ui-monospace,monospace');
+      t.setAttribute('letter-spacing','1');
+      t.textContent = bp.title.toUpperCase();
+      svg.appendChild(t);
+    }
+  }
+
+  // ---------------- 3D rendering (Three.js) ----------------
+  let renderer, scene, camera, modelGroup, raycaster, selectionHelper;
+  let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0;
+  let camTheta = 0.7, camPhi = 1.1, camDist = 7;
+
+  function initThree(){
+    if(renderer) return;
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0B1929);
+
+    camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    updateCameraPosition();
+
+    renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.xr.enabled = true;
+    els.canvasWrap.appendChild(renderer.domElement);
+    raycaster = new THREE.Raycaster();
+
+    const amb = new THREE.AmbientLight(0x8fa8bd, 0.7);
+    scene.add(amb);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    dir.position.set(4,6,5);
+    scene.add(dir);
+
+    const grid = new THREE.GridHelper(10, 20, 0x1E3A57, 0x142943);
+    scene.add(grid);
+
+    modelGroup = new THREE.Group();
+    scene.add(modelGroup);
+
+    const dom = renderer.domElement;
+    dom.addEventListener('pointerdown', e=>{ dragging = true; lastX = e.clientX; lastY = e.clientY; downX = e.clientX; downY = e.clientY; });
+    window.addEventListener('pointerup', e=>{
+      dragging = false;
+      if(editMode && activeView === '3d'){
+        const dist = Math.hypot(e.clientX - downX, e.clientY - downY);
+        if(dist < 6) handle3DClick(e);
+      }
+    });
+    window.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      camTheta -= dx * 0.006;
+      camPhi = Math.max(0.2, Math.min(Math.PI - 0.2, camPhi - dy * 0.006));
+      updateCameraPosition();
+    });
+    dom.addEventListener('wheel', e=>{
+      camDist = Math.max(2, Math.min(20, camDist + e.deltaY * 0.01));
+      updateCameraPosition();
+      e.preventDefault();
+    }, { passive:false });
+
+    window.addEventListener('resize', resizeThree);
+    resizeThree();
+
+    initStereoRig();
+    renderer.setAnimationLoop(()=>{
+      if(cardboardMode) renderStereo();
+      else { renderer.setScissorTest(false); renderer.render(scene, camera); }
+    });
+  }
+
+  // ---------------- Cardboard mode (phone gyro, no WebXR needed) ----------------
+  let cardboardMode = false, head, leftCam, rightCam, screenOrientAngle = 0;
+
+  function initStereoRig(){
+    head = new THREE.Object3D();
+    head.position.set(0, 1.2, 6);
+    scene.add(head);
+    leftCam = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    rightCam = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+    leftCam.position.set(-0.09, 0, 0);
+    rightCam.position.set(0.09, 0, 0);
+    head.add(leftCam);
+    head.add(rightCam);
+    screenOrientAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    window.addEventListener('orientationchange', ()=>{
+      screenOrientAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+    });
+  }
+
+  const EULER_Y0 = new THREE.Vector3(0,0,1);
+  const Q0 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+  function applyDeviceOrientation(quat, alpha, beta, gamma, orient){
+    const euler = new THREE.Euler();
+    euler.set(beta, alpha, -gamma, 'YXZ');
+    quat.setFromEuler(euler);
+    quat.multiply(Q0);
+    quat.multiply(new THREE.Quaternion().setFromAxisAngle(EULER_Y0, -orient));
+  }
+  function onDeviceOrientation(e){
+    if(e.alpha === null || !head) return;
+    const liveAngle = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle : (window.orientation || 0);
+    applyDeviceOrientation(
+      head.quaternion,
+      THREE.MathUtils.degToRad(e.alpha),
+      THREE.MathUtils.degToRad(e.beta),
+      THREE.MathUtils.degToRad(e.gamma),
+      THREE.MathUtils.degToRad(liveAngle)
+    );
+  }
+
+  function renderStereo(){
+    const w = renderer.domElement.width, h = renderer.domElement.height;
+    renderer.setScissorTest(true);
+    leftCam.aspect = (w/2)/h; leftCam.updateProjectionMatrix();
+    renderer.setViewport(0,0,w/2,h); renderer.setScissor(0,0,w/2,h);
+    renderer.render(scene, leftCam);
+    rightCam.aspect = (w/2)/h; rightCam.updateProjectionMatrix();
+    renderer.setViewport(w/2,0,w/2,h); renderer.setScissor(w/2,0,w/2,h);
+    renderer.render(scene, rightCam);
+  }
+
+  async function enterCardboardMode(){
+    if(!renderer){ setStatus('Generate a 3D model first.', 'error'); return; }
+    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      try{
+        const res = await DeviceOrientationEvent.requestPermission();
+        if(res !== 'granted'){ setStatus('Motion sensor permission denied — cardboard mode needs it.', 'error'); return; }
+      }catch(e){ setStatus('Could not get motion sensor permission.', 'error'); return; }
+    }
+    cardboardMode = true;
+    window.addEventListener('deviceorientation', onDeviceOrientation);
+    els.canvasWrap.classList.add('cardboard-active');
+    els.exitCardboardBtn.classList.add('visible');
+    resizeThree();
+    if(els.canvasWrap.requestFullscreen){ els.canvasWrap.requestFullscreen().catch(()=>{}); }
+    if(screen.orientation && screen.orientation.lock){ screen.orientation.lock('landscape').catch(()=>{}); }
+  }
+  function exitCardboardMode(){
+    cardboardMode = false;
+    window.removeEventListener('deviceorientation', onDeviceOrientation);
+    els.canvasWrap.classList.remove('cardboard-active');
+    els.exitCardboardBtn.classList.remove('visible');
+    if(document.fullscreenElement){ document.exitFullscreen().catch(()=>{}); }
+    resizeThree();
+  }
+  els.cardboardBtn.addEventListener('click', enterCardboardMode);
+  els.exitCardboardBtn.addEventListener('click', exitCardboardMode);
+  document.addEventListener('fullscreenchange', ()=>{
+    if(!document.fullscreenElement && cardboardMode) exitCardboardMode();
+  });
+
+  function handle3DClick(e){
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(modelGroup.children, false);
+    if(hits.length){ openInspectorFor3D(hits[0].object.userData.idx); }
+  }
+
+  function updateCameraPosition(){
+    if(!camera) return;
+    camera.position.set(
+      camDist * Math.sin(camPhi) * Math.sin(camTheta),
+      camDist * Math.cos(camPhi),
+      camDist * Math.sin(camPhi) * Math.cos(camTheta)
+    );
+    camera.lookAt(0,0.5,0);
+  }
+
+  function resizeThree(){
+    if(!renderer) return;
+    const w = els.canvasWrap.clientWidth || 800;
+    const h = els.canvasWrap.clientHeight || 600;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+
+  function renderModel(model){
+    initThree();
+    resizeThree();
+    while(modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
+    clearSelectionHelper();
+
+    (model.shapes || []).forEach((s, i)=>{
+      let geo;
+      const color = new THREE.Color(s.color || '#5EC8E8');
+      if(s.type === 'box'){
+        const size = s.size || [1,1,1];
+        geo = new THREE.BoxGeometry(size[0]||1, size[1]||1, size[2]||1);
+      } else if(s.type === 'sphere'){
+        geo = new THREE.SphereGeometry(s.radius || 0.5, 20, 16);
+      } else if(s.type === 'cylinder'){
+        geo = new THREE.CylinderGeometry(s.radius || 0.5, s.radius || 0.5, s.height || 1, 20);
+      } else if(s.type === 'cone'){
+        geo = new THREE.ConeGeometry(s.radius || 0.5, s.height || 1, 20);
+      } else { return; }
+
+      const mat = new THREE.MeshStandardMaterial({ color, roughness:0.55, metalness:0.15 });
+      const mesh = new THREE.Mesh(geo, mat);
+      const pos = s.position || [0,0,0];
+      mesh.position.set(pos[0]||0, pos[1]||0, pos[2]||0);
+      if(s.rotation){ mesh.rotation.set(s.rotation[0]||0, s.rotation[1]||0, s.rotation[2]||0); }
+      mesh.userData.idx = i;
+      modelGroup.add(mesh);
+    });
+  }
+
+  function highlightMesh(idx){
+    clearSelectionHelper();
+    const mesh = modelGroup.children.find(m => m.userData.idx === idx);
+    if(!mesh) return;
+    selectionHelper = new THREE.BoxHelper(mesh, 0xE8A33D);
+    scene.add(selectionHelper);
+  }
+  function clearSelectionHelper(){
+    if(selectionHelper){ scene.remove(selectionHelper); selectionHelper = null; }
+  }
+
+  // ---------------- WebXR / VR headset ----------------
+  async function checkVRSupport(){
+    if(!navigator.xr){ els.vrBtn.classList.remove('visible'); els.vrHint.style.display='block'; return; }
+    try{
+      const supported = await navigator.xr.isSessionSupported('immersive-vr');
+      if(supported){ els.vrBtn.classList.add('visible'); els.vrHint.style.display='none'; }
+      else { els.vrBtn.classList.remove('visible'); els.vrHint.style.display='block'; }
+    }catch(e){ els.vrBtn.classList.remove('visible'); els.vrHint.style.display='block'; }
+  }
+
+  els.vrBtn.addEventListener('click', async ()=>{
+    if(!navigator.xr || !renderer) return;
+    try{
+      const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures:['local-floor','bounded-floor'] });
+      await renderer.xr.setSession(session);
+    }catch(e){
+      setStatus('Could not start VR session on this device.', 'error');
+    }
+  });
+
+  // ================= INSPECTOR (manual editing) =================
+  function closeInspector(){
+    els.inspector.style.display = 'none';
+    selection = null;
+    clearSelectionHelper();
+  }
+
+  function field(labelText, inputHtml){
+    const row = document.createElement('div');
+    row.className = 'insp-row';
+    row.innerHTML = '<label>'+labelText+'</label>' + inputHtml;
+    return row;
+  }
+  function pairField(labelA, inputA, labelB, inputB){
+    const row = document.createElement('div');
+    row.className = 'insp-row pair';
+    row.innerHTML =
+      '<div><label>'+labelA+'</label>'+inputA+'</div>' +
+      '<div><label>'+labelB+'</label>'+inputB+'</div>';
+    return row;
+  }
+
+  // --- Blueprint inspector ---
+  function openInspectorForBlueprint(idx){
+    if(!currentData.blueprint) return;
+    selection = { kind:'blueprint', idx, isNew:false };
+    buildBlueprintForm(currentData.blueprint.elements[idx]);
+  }
+  function openInspectorNewBlueprint(){
+    if(!currentData.blueprint) return;
+    selection = { kind:'blueprint', idx:currentData.blueprint.elements.length, isNew:true };
+    buildBlueprintForm({ type:'rect', x:340, y:220, w:120, h:80, x2:460, y2:220, r:40, label:'', color:'#5EC8E8' });
+  }
+  function buildBlueprintForm(el){
+    els.inspTitle.textContent = selection.isNew ? 'ADD ELEMENT' : 'EDIT ELEMENT';
+    els.inspBody.innerHTML = '';
+    els.inspDelete.style.display = selection.isNew ? 'none' : 'inline-block';
+
+    const typeSel = document.createElement('select');
+    ['rect','circle','line','dim','text'].forEach(t=>{
+      const o = document.createElement('option'); o.value = t; o.textContent = t.toUpperCase();
+      if(t === el.type) o.selected = true;
+      typeSel.appendChild(o);
+    });
+    typeSel.id = 'f-type';
+    els.inspBody.appendChild(field('TYPE', '')).querySelector('label').after(typeSel);
+
+    els.inspBody.appendChild(pairField(
+      'X', '<input type="number" id="f-x" value="'+(el.x??300)+'">',
+      'Y', '<input type="number" id="f-y" value="'+(el.y??200)+'">'
+    ));
+    els.inspBody.appendChild(pairField(
+      'WIDTH', '<input type="number" id="f-w" value="'+(el.w??100)+'">',
+      'HEIGHT', '<input type="number" id="f-h" value="'+(el.h??60)+'">'
+    ));
+    els.inspBody.appendChild(pairField(
+      'X2', '<input type="number" id="f-x2" value="'+(el.x2??400)+'">',
+      'Y2', '<input type="number" id="f-y2" value="'+(el.y2??200)+'">'
+    ));
+    els.inspBody.appendChild(field('RADIUS', '<input type="number" id="f-r" value="'+(el.r??40)+'">'));
+    els.inspBody.appendChild(field('LABEL', '<input type="text" id="f-label" value="'+(el.label||'').replace(/"/g,'&quot;')+'">'));
+    els.inspBody.appendChild(field('COLOR', '<input type="color" id="f-color" value="'+(el.color||'#5EC8E8')+'">'));
+
+    els.inspector.style.display = 'block';
+  }
+  function applyBlueprintForm(){
+    const type = document.getElementById('f-type').value;
+    const updated = {
+      type,
+      x: Number(document.getElementById('f-x').value),
+      y: Number(document.getElementById('f-y').value),
+      w: Number(document.getElementById('f-w').value),
+      h: Number(document.getElementById('f-h').value),
+      x2: Number(document.getElementById('f-x2').value),
+      y2: Number(document.getElementById('f-y2').value),
+      r: Number(document.getElementById('f-r').value),
+      label: document.getElementById('f-label').value,
+      color: document.getElementById('f-color').value
+    };
+    currentData.blueprint.elements[selection.idx] = updated;
+    renderBlueprint(currentData.blueprint);
+    closeInspector();
+  }
+  function deleteBlueprintSelection(){
+    currentData.blueprint.elements.splice(selection.idx, 1);
+    renderBlueprint(currentData.blueprint);
+    closeInspector();
+  }
+
+  // --- 3D inspector ---
+  function openInspectorFor3D(idx){
+    if(!currentData.model || idx === undefined) return;
+    selection = { kind:'3d', idx, isNew:false };
+    buildModelForm(currentData.model.shapes[idx]);
+    highlightMesh(idx);
+  }
+  function openInspectorNew3D(){
+    if(!currentData.model) return;
+    selection = { kind:'3d', idx:currentData.model.shapes.length, isNew:true };
+    buildModelForm({ type:'box', position:[0,0,0], size:[1,1,1], radius:0.5, height:1, rotation:[0,0,0], color:'#5EC8E8' });
+  }
+  function toDeg(r){ return (r||0) * 180/Math.PI; }
+  function buildModelForm(s){
+    els.inspTitle.textContent = selection.isNew ? 'ADD SHAPE' : 'EDIT SHAPE';
+    els.inspBody.innerHTML = '';
+    els.inspDelete.style.display = selection.isNew ? 'none' : 'inline-block';
+
+    const typeSel = document.createElement('select');
+    ['box','sphere','cylinder','cone'].forEach(t=>{
+      const o = document.createElement('option'); o.value = t; o.textContent = t.toUpperCase();
+      if(t === s.type) o.selected = true;
+      typeSel.appendChild(o);
+    });
+    typeSel.id = 'f-type';
+    els.inspBody.appendChild(field('TYPE', '')).querySelector('label').after(typeSel);
+
+    const pos = s.position || [0,0,0];
+    const size = s.size || [1,1,1];
+    const rot = s.rotation || [0,0,0];
+
+    els.inspBody.appendChild(pairField(
+      'POS X', '<input type="number" step="0.1" id="f-px" value="'+pos[0]+'">',
+      'POS Y', '<input type="number" step="0.1" id="f-py" value="'+pos[1]+'">'
+    ));
+    els.inspBody.appendChild(field('POS Z', '<input type="number" step="0.1" id="f-pz" value="'+pos[2]+'">'));
+
+    els.inspBody.appendChild(pairField(
+      'SIZE X (box)', '<input type="number" step="0.1" id="f-sx" value="'+size[0]+'">',
+      'SIZE Y (box)', '<input type="number" step="0.1" id="f-sy" value="'+size[1]+'">'
+    ));
+    els.inspBody.appendChild(field('SIZE Z (box)', '<input type="number" step="0.1" id="f-sz" value="'+size[2]+'">'));
+
+    els.inspBody.appendChild(pairField(
+      'RADIUS', '<input type="number" step="0.1" id="f-radius" value="'+(s.radius??0.5)+'">',
+      'HEIGHT', '<input type="number" step="0.1" id="f-height" value="'+(s.height??1)+'">'
+    ));
+    els.inspBody.appendChild(field('ROTATION (deg, XYZ)', '<input type="text" id="f-rot" value="'+[toDeg(rot[0]),toDeg(rot[1]),toDeg(rot[2])].map(v=>Math.round(v)).join(',')+'">'));
+    els.inspBody.appendChild(field('COLOR', '<input type="color" id="f-color" value="'+(s.color||'#5EC8E8')+'">'));
+
+    els.inspector.style.display = 'block';
+  }
+  function applyModelForm(){
+    const type = document.getElementById('f-type').value;
+    const rotParts = document.getElementById('f-rot').value.split(',').map(v=> (parseFloat(v)||0) * Math.PI/180);
+    const updated = {
+      type,
+      position: [Number(document.getElementById('f-px').value), Number(document.getElementById('f-py').value), Number(document.getElementById('f-pz').value)],
+      size: [Number(document.getElementById('f-sx').value), Number(document.getElementById('f-sy').value), Number(document.getElementById('f-sz').value)],
+      radius: Number(document.getElementById('f-radius').value),
+      height: Number(document.getElementById('f-height').value),
+      rotation: [rotParts[0]||0, rotParts[1]||0, rotParts[2]||0],
+      color: document.getElementById('f-color').value
+    };
+    currentData.model.shapes[selection.idx] = updated;
+    renderModel(currentData.model);
+    closeInspector();
+  }
+  function deleteModelSelection(){
+    currentData.model.shapes.splice(selection.idx, 1);
+    renderModel(currentData.model);
+    closeInspector();
+  }
+
+  els.inspApply.addEventListener('click', ()=>{
+    if(!selection) return;
+    if(selection.kind === 'blueprint') applyBlueprintForm();
+    else applyModelForm();
+  });
+  els.inspDelete.addEventListener('click', ()=>{
+    if(!selection) return;
+    if(selection.kind === 'blueprint') deleteBlueprintSelection();
+    else deleteModelSelection();
+  });
+
+  // ================= EXPORTS =================
+  els.exportRow.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.export-btn');
+    if(!btn) return;
+    const type = btn.dataset.export;
+    if(type === 'png' || type === 'jpg') exportBlueprintImage(type);
+    else if(type === 'stl') exportSTL();
+    else if(type === 'obj') exportOBJ();
+    else if(type === '3mf') export3MF();
+    else if(type === 'step') exportSTEP();
+  });
+
+  // ---------------- STEP export (real B-rep solid, planar-faceted) ----------------
+  // Box faces are exact planar B-rep. Cylinder/cone/sphere are built as true closed
+  // polyhedral solids (flat PLANE faces, shared edges/vertices) rather than an
+  // analytic curved surface — this keeps every face/edge topologically valid and
+  // opens cleanly in FreeCAD / SolidWorks / Fusion 360, at the cost of being
+  // faceted rather than a perfectly smooth cylinder (24 sides by default, which
+  // reads as round for most parts and can be filleted/recognized as a cylinder
+  // in most CAD tools if you need a true analytic surface).
+  function exportSTEP(){
+    if(!currentData.model || !currentData.model.shapes || !currentData.model.shapes.length){
+      setStatus('Nothing to export yet.', 'error'); return;
+    }
+    try{
+      const text = buildSTEP(currentData.model.shapes);
+      downloadText(text, 'model.step', 'application/step');
+      setStatus('STEP exported — planar-faceted solid (mm). Open in FreeCAD/SolidWorks/Fusion and check it before machining.', 'ok');
+    }catch(e){
+      console.error(e);
+      setStatus('STEP export failed for this model — try STL/OBJ instead.', 'error');
+    }
+  }
+
+  function buildSTEP(shapes){
+    let entities = [], nextId = 1;
+    const vertexCache = new Map(), edgeCache = new Map();
+
+    function E(type, params){ const id = nextId++; entities.push('#'+id+'='+type+'('+params+');'); return id; }
+    function EMIT(str){ const id = nextId++; entities.push('#'+id+'='+str+';'); return id; }
+    function fmtNum(n){ if(Math.abs(n) < 1e-9) n = 0; return (Math.round(n*1e6)/1e6).toString(); }
+    function fmtPoint(p){ return '('+fmtNum(p.x)+','+fmtNum(p.y)+','+fmtNum(p.z)+')'; }
+    function fmtVec(v){ return '('+fmtNum(v.x)+','+fmtNum(v.y)+','+fmtNum(v.z)+')'; }
+
+    function vertexAt(p){
+      const key = fmtNum(p.x)+'_'+fmtNum(p.y)+'_'+fmtNum(p.z);
+      if(vertexCache.has(key)) return vertexCache.get(key);
+      const cpId = E('CARTESIAN_POINT', "''," + fmtPoint(p));
+      const vpId = E('VERTEX_POINT', "'',#"+cpId);
+      const obj = { id:vpId, pos:p.clone() };
+      vertexCache.set(key, obj);
+      return obj;
+    }
+    function getEdge(vAid, vBid, posA, posB){
+      const key = vAid < vBid ? vAid+'_'+vBid : vBid+'_'+vAid;
+      if(edgeCache.has(key)){
+        const e = edgeCache.get(key);
+        return { edgeId:e.edgeId, orientation: e.fromId === vAid };
+      }
+      const dir = new THREE.Vector3().subVectors(posB, posA).normalize();
+      const dirId = E('DIRECTION', "'',"+fmtVec(dir));
+      const vecId = E('VECTOR', "'',#"+dirId+",1.0");
+      const cpId = E('CARTESIAN_POINT', "''," + fmtPoint(posA));
+      const lineId = E('LINE', "'',#"+cpId+",#"+vecId);
+      const edgeId = E('EDGE_CURVE', "'',#"+vAid+",#"+vBid+",#"+lineId+",.T.");
+      edgeCache.set(key, { edgeId, fromId:vAid, toId:vBid });
+      return { edgeId, orientation:true };
+    }
+    function buildFace(vertObjs, outwardHint){
+      let verts = vertObjs;
+      const p0 = verts[0].pos, p1 = verts[1].pos, p2 = verts[2].pos;
+      let normal = new THREE.Vector3().subVectors(p1,p0).cross(new THREE.Vector3().subVectors(p2,p0));
+      if(normal.lengthSq() < 1e-12){ normal.set(0,0,1); }
+      normal.normalize();
+      if(outwardHint && normal.dot(outwardHint) < 0){ verts = verts.slice().reverse(); normal.negate(); }
+      const orientedEdges = [];
+      for(let i=0;i<verts.length;i++){
+        const a = verts[i], b = verts[(i+1)%verts.length];
+        const { edgeId, orientation } = getEdge(a.id, b.id, a.pos, b.pos);
+        orientedEdges.push(E('ORIENTED_EDGE', "'',*,*,#"+edgeId+","+(orientation?'.T.':'.F.')));
+      }
+      const loopId = E('EDGE_LOOP', "'',("+orientedEdges.map(id=>'#'+id).join(',')+')');
+      const boundId = E('FACE_OUTER_BOUND', "'',#"+loopId+",.T.");
+      const refCandidate = Math.abs(normal.z) < 0.9 ? new THREE.Vector3(0,0,1) : new THREE.Vector3(1,0,0);
+      const xAxis = new THREE.Vector3().crossVectors(refCandidate, normal).normalize();
+      const cpId = E('CARTESIAN_POINT', "''," + fmtPoint(verts[0].pos));
+      const zDirId = E('DIRECTION', "'',"+fmtVec(normal));
+      const xDirId = E('DIRECTION', "'',"+fmtVec(xAxis));
+      const axisId = E('AXIS2_PLACEMENT_3D', "'',#"+cpId+",#"+zDirId+",#"+xDirId);
+      const planeId = E('PLANE', "'',#"+axisId);
+      return E('ADVANCED_FACE', "'',(#"+boundId+"),#"+planeId+",.T.");
+    }
+
+    function shapeMatrix(shape){
+      const pos = shape.position || [0,0,0];
+      const rot = shape.rotation || [0,0,0];
+      const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rot[0]||0, rot[1]||0, rot[2]||0, 'XYZ'));
+      const m = new THREE.Matrix4();
+      m.compose(new THREE.Vector3(pos[0]*EXPORT_SCALE_MM, pos[1]*EXPORT_SCALE_MM, pos[2]*EXPORT_SCALE_MM), quat, new THREE.Vector3(1,1,1));
+      return m;
+    }
+    function tPoint(local, matrix){ return local.clone().applyMatrix4(matrix); }
+    function tDir(local, matrix){ return local.clone().transformDirection(matrix); }
+
+    function makeBoxFaces(shape, matrix){
+      const size = shape.size || [1,1,1];
+      const sx=(size[0]||1)*EXPORT_SCALE_MM/2, sy=(size[1]||1)*EXPORT_SCALE_MM/2, sz=(size[2]||1)*EXPORT_SCALE_MM/2;
+      const local = [
+        [-sx,-sy,-sz],[sx,-sy,-sz],[sx,sy,-sz],[-sx,sy,-sz],
+        [-sx,-sy, sz],[sx,-sy, sz],[sx,sy, sz],[-sx,sy, sz]
+      ].map(([x,y,z]) => vertexAt(tPoint(new THREE.Vector3(x,y,z), matrix)));
+      const faceDefs = [
+        { idx:[0,3,2,1], hint:[0,0,-1] }, { idx:[4,5,6,7], hint:[0,0,1] },
+        { idx:[0,1,5,4], hint:[0,-1,0] }, { idx:[1,2,6,5], hint:[1,0,0] },
+        { idx:[2,3,7,6], hint:[0,1,0] }, { idx:[3,0,4,7], hint:[-1,0,0] },
+      ];
+      return faceDefs.map(fd => buildFace(fd.idx.map(i=>local[i]), tDir(new THREE.Vector3(fd.hint[0],fd.hint[1],fd.hint[2]), matrix)));
+    }
+
+    function makeRevolveFaces(levels, N, matrix){
+      const ringVerts = [];
+      for(const lvl of levels){
+        if(lvl.type === 'pole'){
+          ringVerts.push(vertexAt(tPoint(new THREE.Vector3(0, lvl.y, 0), matrix)));
+        } else {
+          const arr = [];
+          for(let i=0;i<N;i++){
+            const theta = (i/N) * Math.PI*2;
+            const local = new THREE.Vector3(lvl.r*Math.cos(theta), lvl.y, lvl.r*Math.sin(theta));
+            arr.push({ vObj: vertexAt(tPoint(local, matrix)), theta });
+          }
+          ringVerts.push(arr);
+        }
+      }
+      function radialHint(theta1, theta2){
+        const cx = Math.cos(theta1)+Math.cos(theta2), cz = Math.sin(theta1)+Math.sin(theta2);
+        return tDir(new THREE.Vector3(cx,0,cz), matrix);
+      }
+      const faces = [];
+      for(let li=0; li<levels.length-1; li++){
+        const a = ringVerts[li], b = ringVerts[li+1];
+        const aPole = levels[li].type === 'pole', bPole = levels[li+1].type === 'pole';
+        if(!aPole && !bPole){
+          for(let i=0;i<N;i++){
+            const i2=(i+1)%N;
+            faces.push(buildFace([a[i].vObj, b[i].vObj, b[i2].vObj, a[i2].vObj], radialHint(a[i].theta, a[i2].theta)));
+          }
+        } else if(aPole && !bPole){
+          for(let i=0;i<N;i++){
+            const i2=(i+1)%N;
+            faces.push(buildFace([a, b[i].vObj, b[i2].vObj], radialHint(b[i].theta, b[i2].theta)));
+          }
+        } else if(!aPole && bPole){
+          for(let i=0;i<N;i++){
+            const i2=(i+1)%N;
+            faces.push(buildFace([a[i].vObj, a[i2].vObj, b], radialHint(a[i].theta, a[i2].theta)));
+          }
+        }
+      }
+      if(levels[0].type === 'ring'){
+        faces.push(buildFace(ringVerts[0].map(o=>o.vObj), tDir(new THREE.Vector3(0,-1,0), matrix)));
+      }
+      if(levels[levels.length-1].type === 'ring'){
+        faces.push(buildFace(ringVerts[levels.length-1].map(o=>o.vObj), tDir(new THREE.Vector3(0,1,0), matrix)));
+      }
+      return faces;
+    }
+
+    function shapeToFaces(shape){
+      const matrix = shapeMatrix(shape);
+      const N = 24;
+      if(shape.type === 'box'){
+        return makeBoxFaces(shape, matrix);
+      } else if(shape.type === 'cylinder'){
+        const halfH = (shape.height||1) * EXPORT_SCALE_MM / 2;
+        const rad = (shape.radius||0.5) * EXPORT_SCALE_MM;
+        return makeRevolveFaces([{type:'ring',y:-halfH,r:rad},{type:'ring',y:halfH,r:rad}], N, matrix);
+      } else if(shape.type === 'cone'){
+        const halfH = (shape.height||1) * EXPORT_SCALE_MM / 2;
+        const rad = (shape.radius||0.5) * EXPORT_SCALE_MM;
+        return makeRevolveFaces([{type:'ring',y:-halfH,r:rad},{type:'pole',y:halfH}], N, matrix);
+      } else if(shape.type === 'sphere'){
+        const rad = (shape.radius||0.5) * EXPORT_SCALE_MM;
+        const latBands = 12;
+        const levels = [{type:'pole', y:-rad}];
+        for(let i=1;i<latBands;i++){
+          const phi = (i/latBands)*Math.PI - Math.PI/2;
+          levels.push({type:'ring', y: rad*Math.sin(phi), r: rad*Math.cos(phi)});
+        }
+        levels.push({type:'pole', y:rad});
+        return makeRevolveFaces(levels, N, matrix);
+      }
+      return [];
+    }
+
+    const allFaceIds = [];
+    const solidIds = [];
+    shapes.forEach(s=>{
+      try{
+        const faceIds = shapeToFaces(s);
+        if(faceIds.length){
+          const shellId = E('CLOSED_SHELL', "''," + '(' + faceIds.map(id=>'#'+id).join(',') + ')');
+          solidIds.push(E('MANIFOLD_SOLID_BREP', "'draft_vr_part',#"+shellId));
+        }
+      }catch(e){ console.warn('skipped shape in STEP export', s, e); }
+    });
+    if(!solidIds.length) throw new Error('No exportable geometry');
+
+    const originId = E('CARTESIAN_POINT', "'',(0.0,0.0,0.0)");
+    const zDirId = E('DIRECTION', "'',(0.0,0.0,1.0)");
+    const xDirId = E('DIRECTION', "'',(1.0,0.0,0.0)");
+    const worldAxisId = E('AXIS2_PLACEMENT_3D', "'',#"+originId+",#"+zDirId+",#"+xDirId);
+
+    const appCtxId = E('APPLICATION_CONTEXT', "'automotive_design'");
+    const prodCtxId = E('PRODUCT_CONTEXT', "'',#"+appCtxId+",'mechanical'");
+    const productId = E('PRODUCT', "'draft_vr_model','draft_vr_model','',(#"+prodCtxId+")");
+    const pdCtxId = E('PRODUCT_DEFINITION_CONTEXT', "'part definition',#"+appCtxId+",'design'");
+    const pdfId = E('PRODUCT_DEFINITION_FORMATION', "'','',#"+productId);
+    const pdId = E('PRODUCT_DEFINITION', "'design','',#"+pdfId+",#"+pdCtxId);
+    const pdsId = E('PRODUCT_DEFINITION_SHAPE', "'','',#"+pdId);
+
+    const lenUnitId = EMIT('(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT($,.MILLI.,.METRE.))');
+    const angUnitId = EMIT('(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,$,.RADIAN.))');
+    const solidAngUnitId = EMIT('(NAMED_UNIT(*) SOLID_ANGLE_UNIT() SI_UNIT($,$,.STERADIAN.))');
+    const uncMeasureId = E('UNCERTAINTY_MEASURE_WITH_UNIT', "LENGTH_MEASURE(1.0E-3),#"+lenUnitId+",'distance_accuracy_value','max precision'");
+    const geomCtxId = EMIT('GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#'+uncMeasureId+')) GLOBAL_UNIT_ASSIGNED_CONTEXT((#'+lenUnitId+',#'+angUnitId+',#'+solidAngUnitId+")) REPRESENTATION_CONTEXT('Context','3D')");
+
+    const shapeRepId = E('ADVANCED_BREP_SHAPE_REPRESENTATION', "'',(#"+worldAxisId+","+solidIds.map(id=>'#'+id).join(',')+"),#"+geomCtxId);
+    E('SHAPE_DEFINITION_REPRESENTATION', "#"+pdsId+",#"+shapeRepId);
+
+    const header =
+`ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION((''),'2;1');
+FILE_NAME('model.step','${new Date().toISOString()}',('DRAFT/VR'),(''),'DRAFT/VR STEP exporter','','');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));
+ENDSEC;
+DATA;
+`;
+    const footer = `ENDSEC;\nEND-ISO-10303-21;\n`;
+    return header + entities.join('\n') + '\n' + footer;
+  }
+
+  function showStepLimitation(){
+    setStatus('STEP needs true CAD B-rep geometry (surfaces, not triangles) — this tool exports meshes. Export STL or OBJ, then use FreeCAD (Mesh → Part) or Fusion 360 to convert to STEP.', 'info');
+  }
+
+  function downloadBlobUrl(url, filename){
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 4000);
+  }
+  function downloadText(content, filename, mime){
+    const blob = new Blob([content], {type: mime || 'text/plain'});
+    downloadBlobUrl(URL.createObjectURL(blob), filename);
+  }
+
+  function exportBlueprintImage(type){
+    const svg = els.svg;
+    const serializer = new XMLSerializer();
+    const svgStr = serializer.serializeToString(svg);
+    const svgBlob = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      canvas.width = 800; canvas.height = 520;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0B1929'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      URL.revokeObjectURL(url);
+      const mime = type === 'jpg' ? 'image/jpeg' : 'image/png';
+      downloadBlobUrl(canvas.toDataURL(mime, 0.95), 'blueprint.' + type);
+    };
+    img.src = url;
+  }
+
+  // shared mesh-to-triangle collector, in real-world mm
+  function collectTriangles(){
+    modelGroup.updateMatrixWorld(true);
+    const meshes = [];
+    modelGroup.children.forEach(mesh=>{
+      const geo = mesh.geometry;
+      const pos = geo.attributes.position;
+      const idx = geo.index;
+      const mw = mesh.matrixWorld;
+      const verts = [];
+      for(let i=0;i<pos.count;i++){
+        const v = new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mw).multiplyScalar(EXPORT_SCALE_MM);
+        verts.push(v);
+      }
+      const tris = [];
+      const triCount = idx ? idx.count/3 : pos.count/3;
+      for(let t=0;t<triCount;t++){
+        if(idx) tris.push([idx.getX(t*3), idx.getX(t*3+1), idx.getX(t*3+2)]);
+        else tris.push([t*3, t*3+1, t*3+2]);
+      }
+      meshes.push({ verts, tris });
+    });
+    return meshes;
+  }
+
+  function exportSTL(){
+    if(!modelGroup || !modelGroup.children.length){ setStatus('Nothing to export yet.', 'error'); return; }
+    const meshes = collectTriangles();
+    let out = 'solid model\n';
+    meshes.forEach(({verts, tris})=>{
+      tris.forEach(([a,b,c])=>{
+        const vA = verts[a], vB = verts[b], vC = verts[c];
+        const n = new THREE.Vector3().subVectors(vB,vA).cross(new THREE.Vector3().subVectors(vC,vA)).normalize();
+        out += 'facet normal '+n.x+' '+n.y+' '+n.z+'\nouter loop\n';
+        out += 'vertex '+vA.x+' '+vA.y+' '+vA.z+'\n';
+        out += 'vertex '+vB.x+' '+vB.y+' '+vB.z+'\n';
+        out += 'vertex '+vC.x+' '+vC.y+' '+vC.z+'\n';
+        out += 'endloop\nendfacet\n';
+      });
+    });
+    out += 'endsolid model\n';
+    downloadText(out, 'model.stl', 'model/stl');
+    setStatus('STL exported (units: mm).', 'ok');
+  }
+
+  function exportOBJ(){
+    if(!modelGroup || !modelGroup.children.length){ setStatus('Nothing to export yet.', 'error'); return; }
+    const meshes = collectTriangles();
+    let out = '# exported from DRAFT/VR (mm)\n';
+    let vOffset = 1;
+    meshes.forEach(({verts, tris}, mi)=>{
+      out += 'o shape_'+mi+'\n';
+      verts.forEach(v=>{ out += 'v '+v.x+' '+v.y+' '+v.z+'\n'; });
+      tris.forEach(([a,b,c])=>{ out += 'f '+(a+vOffset)+' '+(b+vOffset)+' '+(c+vOffset)+'\n'; });
+      vOffset += verts.length;
+    });
+    downloadText(out, 'model.obj', 'text/plain');
+    setStatus('OBJ exported (units: mm).', 'ok');
+  }
+
+  async function export3MF(){
+    if(!modelGroup || !modelGroup.children.length){ setStatus('Nothing to export yet.', 'error'); return; }
+    if(!window.JSZip){ setStatus('3MF exporter still loading — try again in a second.', 'error'); return; }
+    const meshes = collectTriangles();
+
+    let allVerts = [], allTris = [], vOffset = 0;
+    meshes.forEach(({verts, tris})=>{
+      verts.forEach(v=> allVerts.push(v));
+      tris.forEach(([a,b,c])=> allTris.push([a+vOffset, b+vOffset, c+vOffset]));
+      vOffset += verts.length;
+    });
+
+    let vertXml = allVerts.map(v => '<vertex x="'+v.x+'" y="'+v.y+'" z="'+v.z+'"/>').join('');
+    let triXml = allTris.map(([a,b,c]) => '<triangle v1="'+a+'" v2="'+b+'" v3="'+c+'"/>').join('');
+
+    const modelXml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">\n' +
+      '<resources><object id="1" type="model"><mesh>' +
+      '<vertices>'+vertXml+'</vertices>' +
+      '<triangles>'+triXml+'</triangles>' +
+      '</mesh></object></resources>' +
+      '<build><item objectid="1"/></build>' +
+      '</model>';
+
+    const contentTypes = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>' +
+      '</Types>';
+
+    const rels = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>' +
+      '</Relationships>';
+
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', contentTypes);
+    zip.folder('_rels').file('.rels', rels);
+    zip.folder('3D').file('3dmodel.model', modelXml);
+    const blob = await zip.generateAsync({type:'blob'});
+    downloadBlobUrl(URL.createObjectURL(blob), 'model.3mf');
+    setStatus('3MF exported — opens in Bambu Studio / OrcaSlicer (units: mm).', 'ok');
+  }
+
+  loadHistory();
+})();
+</script>
+</body>
+</html>
