@@ -20,14 +20,14 @@ DRAFT/VR is a single self-contained web app — no build step, no backend, no in
 
 Open `index.html` directly in a browser for everything except motion sensors. VR / Cardboard mode specifically needs the page served over **HTTPS** (browsers block motion-sensor access on plain `http://` or a local file) — that's what this repo + GitHub Pages is for.
 
-**Live:** `https://viren-robot.github.io/draft-vr/`
+**Live:** `https://viren-robot.github.io/AI-VR-AGENT/`
 
 ## Tech
 
 - Single HTML file — no framework, no build step, no dependencies to install.
 - [Three.js](https://threejs.org/) (r128, via CDN) for 3D rendering and WebXR.
 - [JSZip](https://stuk.github.io/jszip/) (via CDN) for 3MF packaging.
-- Model generation calls the Anthropic API directly from the browser.
+- **Payments** via PhonePe Checkout — ₹2,100 lifetime access, verified server-side via webhook signature.
 - STEP export is a hand-written, self-tested B-rep exporter (box/cylinder/cone/sphere primitives as closed polyhedral solids — see `Export → STEP` in-app for details on what that means for accuracy).
 
 ## Known limitations
@@ -39,4 +39,3 @@ Open `index.html` directly in a browser for everything except motion sensors. VR
 ## License
 
 MIT — see [LICENSE](LICENSE). Change this if you'd rather keep it private/unlicensed.
-Link: https://viren-robot.github.io/AI-VR-AGENT/
