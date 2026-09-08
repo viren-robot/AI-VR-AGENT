@@ -1626,12 +1626,13 @@ DATA;
 
   async function afterAuth(){
     if(!auth.profile) await fetchProfile();
-    if(!auth.profile || !auth.profile.paid){
+    const hasAccess = auth.profile && (auth.profile.paid || auth.profile.is_manager || auth.profile.is_owner);
+    if(!hasAccess){
       renderPaywall();
       return;
     }
     gateEl.classList.add('hidden');
-    document.getElementById('manager-btn').classList.toggle('visible', !!auth.profile.is_manager);
+    document.getElementById('manager-btn').classList.toggle('visible', !!auth.profile.is_manager || !!auth.profile.is_owner);
     loadHistory();
   }
 
