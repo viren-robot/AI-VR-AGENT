@@ -27,7 +27,6 @@ Open `index.html` directly in a browser for everything except motion sensors. VR
 - Single HTML file — no framework, no build step, no dependencies to install.
 - [Three.js](https://threejs.org/) (r128, via CDN) for 3D rendering and WebXR.
 - [JSZip](https://stuk.github.io/jszip/) (via CDN) for 3MF packaging.
-- **Payments** via PhonePe Checkout — ₹2,100 lifetime access, verified server-side via webhook signature.
 - STEP export is a hand-written, self-tested B-rep exporter (box/cylinder/cone/sphere primitives as closed polyhedral solids — see `Export → STEP` in-app for details on what that means for accuracy).
 
 ## Known limitations
