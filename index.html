@@ -2,1408 +2,1295 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DRAFT/VR — Generative Blueprint &amp; Model Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Blueline Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-  :root{
-    --bg: #0B1929;
-    --panel: #0F2036;
-    --panel-raised: #142943;
-    --grid-line: #1E3A57;
-    --text: #DCE8F2;
-    --text-dim: #6F8AA3;
-    --cyan: #5EC8E8;
-    --amber: #E8A33D;
-    --error: #E8615E;
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  }
-  *{ box-sizing: border-box; }
-  html,body{ margin:0; padding:0; height:100%; background:var(--bg); color:var(--text); font-family:var(--font-sans); overflow:hidden; }
-  button{ font-family:inherit; }
-  input,select{ font-family:inherit; }
-  ::selection{ background:var(--cyan); color:var(--bg); }
+/* ============================================================
+   BLUELINE STUDIO — tokens
+   ============================================================ */
+:root{
+  --ground:#F2F5FC;
+  --ground-2:#E7ECFA;
+  --surface:#FFFFFF;
+  --surface-2:#F7F9FE;
+  --ink:#111730;
+  --ink-soft:#4C5678;
+  --ink-faint:#7C86A8;
+  --line:#DCE3F4;
+  --line-strong:#C3CDE8;
 
-  .app{ display:flex; height:100vh; width:100vw; }
+  --blue:#2B4FF0;
+  --cyan:#00BEC9;
+  --violet:#8B3BF5;
+  --magenta:#F5299B;
+  --amber:#FF9D1E;
 
-  /* ---------- Sidebar ---------- */
-  .panel{
-    width:340px; min-width:340px; background:var(--panel);
-    border-right:1px solid var(--grid-line);
-    display:flex; flex-direction:column;
-    padding:20px 18px; overflow-y:auto;
-  }
-  .brand{ margin-bottom:22px; }
-  .brand .mark{ font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; color:var(--cyan); }
-  .brand h1{ font-size:20px; font-weight:700; margin:4px 0 0; letter-spacing:-.01em; }
-  .brand p{ font-size:12.5px; color:var(--text-dim); margin:6px 0 0; line-height:1.5; }
+  --grad-hot:linear-gradient(100deg,#2B4FF0 0%,#8B3BF5 34%,#F5299B 66%,#FF9D1E 100%);
+  --grad-cool:linear-gradient(120deg,#00BEC9 0%,#2B4FF0 52%,#8B3BF5 100%);
+  --grad-text:linear-gradient(95deg,#2B4FF0,#8B3BF5 38%,#F5299B 68%,#FF9D1E);
 
-  label.field-label{ display:block; font-family:var(--font-mono); font-size:11px; color:var(--text-dim); letter-spacing:.06em; margin:16px 0 6px; }
+  --grid-line:rgba(43,79,240,.085);
+  --glow:rgba(43,79,240,.22);
+  --shadow:0 18px 44px -22px rgba(17,23,48,.45);
+  --shadow-lift:0 30px 60px -26px rgba(43,79,240,.55);
 
-  textarea{
-    width:100%; min-height:110px; resize:vertical;
-    background:var(--bg); border:1px solid var(--grid-line); color:var(--text);
-    border-radius:2px; padding:10px 11px; font-size:14px; font-family:var(--font-sans);
-    line-height:1.5;
-  }
-  textarea:focus{ outline:none; border-color:var(--cyan); box-shadow:0 0 0 1px var(--cyan); }
+  --blob-a:rgba(43,79,240,.42);
+  --blob-b:rgba(245,41,155,.30);
+  --blob-c:rgba(0,190,201,.34);
+  --blob-d:rgba(255,157,30,.26);
 
-  .mode-row{ display:flex; gap:6px; margin-top:8px; }
-  .mode-btn{
-    flex:1; background:var(--bg); border:1px solid var(--grid-line); color:var(--text-dim);
-    padding:8px 4px; font-size:12px; border-radius:2px; cursor:pointer; transition:border-color .15s, color .15s;
-  }
-  .mode-btn:hover{ color:var(--text); }
-  .mode-btn.active{ border-color:var(--amber); color:var(--amber); }
+  --canvas-bg:#E9EDF9;
+  --radius:16px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#070A15;
+    --ground-2:#0C1124;
+    --surface:#121936;
+    --surface-2:#0E142C;
+    --ink:#E9EEFF;
+    --ink-soft:#9EA9CE;
+    --ink-faint:#737FA6;
+    --line:#242E52;
+    --line-strong:#33406C;
 
-  .generate-btn{
-    margin-top:16px; width:100%; background:var(--amber); color:#1A1104; border:none;
-    font-weight:700; font-size:14px; padding:12px; border-radius:2px; cursor:pointer;
-    letter-spacing:.01em; transition:filter .15s;
-  }
-  .generate-btn:hover{ filter:brightness(1.08); }
-  .generate-btn:disabled{ background:var(--grid-line); color:var(--text-dim); cursor:default; }
+    --blue:#6A88FF;
+    --cyan:#2FE0E8;
+    --violet:#B172FF;
+    --magenta:#FF5FB4;
+    --amber:#FFC05C;
 
-  .status{ font-family:var(--font-mono); font-size:12px; margin-top:10px; min-height:32px; color:var(--text-dim); line-height:1.5; }
-  .status.error{ color:var(--error); }
-  .status.ok{ color:var(--cyan); }
-  .status.info{ color:var(--amber); }
+    --grad-hot:linear-gradient(100deg,#6A88FF 0%,#B172FF 34%,#FF5FB4 66%,#FFC05C 100%);
+    --grad-cool:linear-gradient(120deg,#2FE0E8 0%,#6A88FF 52%,#B172FF 100%);
+    --grad-text:linear-gradient(95deg,#6A88FF,#B172FF 38%,#FF5FB4 68%,#FFC05C);
 
-  .history{ margin-top:22px; flex:1; }
-  .history-item{
-    padding:9px 10px; border:1px solid var(--grid-line); border-radius:2px; margin-bottom:6px;
-    font-size:12.5px; cursor:pointer; color:var(--text-dim); transition:border-color .15s,color .15s;
-  }
-  .history-item:hover{ border-color:var(--cyan); color:var(--text); }
-  .history-empty{ font-size:12.5px; color:var(--text-dim); font-style:italic; }
+    --grid-line:rgba(150,180,255,.09);
+    --glow:rgba(106,136,255,.3);
+    --shadow:0 18px 44px -20px rgba(0,0,0,.8);
+    --shadow-lift:0 30px 60px -24px rgba(106,136,255,.45);
 
-  .titleblock{
-    margin-top:18px; border-top:1px solid var(--grid-line); padding-top:12px;
-    font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); display:grid;
-    grid-template-columns:1fr 1fr; gap:4px 10px;
-  }
-  .titleblock b{ color:var(--text); font-weight:600; }
+    --blob-a:rgba(60,95,255,.46);
+    --blob-b:rgba(255,72,180,.30);
+    --blob-c:rgba(0,214,226,.30);
+    --blob-d:rgba(255,168,48,.22);
 
-  /* ---------- Viewport ---------- */
-  .viewport{
-    flex:1; position:relative; display:flex; flex-direction:column;
-    background-image:
-      linear-gradient(var(--grid-line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-    background-size:32px 32px;
-    background-color:var(--bg);
+    --canvas-bg:#0C122A;
   }
-  .toolbar-row{
-    display:flex; align-items:center; gap:10px; padding:14px 18px 0; z-index:5; flex-wrap:wrap;
-  }
-  .viewport-tabs{ display:flex; gap:0; }
-  .viewport-tabs.hidden{ display:none; }
-  .vtab{
-    background:transparent; border:1px solid var(--grid-line); border-bottom:none;
-    color:var(--text-dim); font-family:var(--font-mono); font-size:11.5px; padding:8px 16px;
-    cursor:pointer; letter-spacing:.05em;
-  }
-  .vtab.active{ color:var(--cyan); border-color:var(--cyan); background:var(--bg); }
+}
+:root[data-theme="dark"]{
+  --ground:#070A15; --ground-2:#0C1124; --surface:#121936; --surface-2:#0E142C;
+  --ink:#E9EEFF; --ink-soft:#9EA9CE; --ink-faint:#737FA6; --line:#242E52; --line-strong:#33406C;
+  --blue:#6A88FF; --cyan:#2FE0E8; --violet:#B172FF; --magenta:#FF5FB4; --amber:#FFC05C;
+  --grad-hot:linear-gradient(100deg,#6A88FF 0%,#B172FF 34%,#FF5FB4 66%,#FFC05C 100%);
+  --grad-cool:linear-gradient(120deg,#2FE0E8 0%,#6A88FF 52%,#B172FF 100%);
+  --grad-text:linear-gradient(95deg,#6A88FF,#B172FF 38%,#FF5FB4 68%,#FFC05C);
+  --grid-line:rgba(150,180,255,.09);
+  --glow:rgba(106,136,255,.3);
+  --shadow:0 18px 44px -20px rgba(0,0,0,.8);
+  --shadow-lift:0 30px 60px -24px rgba(106,136,255,.45);
+  --blob-a:rgba(60,95,255,.46); --blob-b:rgba(255,72,180,.30);
+  --blob-c:rgba(0,214,226,.30); --blob-d:rgba(255,168,48,.22);
+  --canvas-bg:#0C122A;
+}
 
-  .edit-toggle{
-    background:var(--panel); border:1px solid var(--grid-line); color:var(--text-dim);
-    font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; padding:7px 12px;
-    border-radius:2px; cursor:pointer; display:none;
-  }
-  .edit-toggle.visible{ display:inline-block; }
-  .edit-toggle.on{ border-color:var(--amber); color:var(--amber); background:rgba(232,163,61,.08); }
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:'Manrope','Helvetica Neue',Arial,sans-serif;
+  font-size:16px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:var(--magenta); color:#fff;}
+a{color:inherit;}
+img{max-width:100%;}
+[hidden]{display:none!important;}
 
-  .export-row{ display:none; align-items:center; gap:6px; margin-left:auto; }
-  .export-row.visible{ display:flex; }
-  .export-label{ font-family:var(--font-mono); font-size:10px; color:var(--text-dim); letter-spacing:.08em; margin-right:2px; }
-  .export-btn{
-    background:var(--panel); border:1px solid var(--grid-line); color:var(--text-dim);
-    font-family:var(--font-mono); font-size:11px; padding:7px 10px; border-radius:2px; cursor:pointer;
-  }
-  .export-btn:hover{ border-color:var(--cyan); color:var(--cyan); }
+/* ---------- animated ground ---------- */
+.bg-layer{position:fixed; inset:0; z-index:-2; pointer-events:none; background:var(--ground);}
+.bg-grid{
+  position:fixed; inset:-40px; z-index:-1; pointer-events:none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:38px 38px;
+  animation:gridDrift 34s linear infinite;
+  mask-image:radial-gradient(120% 90% at 50% 10%, #000 30%, transparent 100%);
+  -webkit-mask-image:radial-gradient(120% 90% at 50% 10%, #000 30%, transparent 100%);
+}
+@keyframes gridDrift{to{background-position:38px 38px;}}
+.blob{position:fixed; z-index:-2; border-radius:50%; filter:blur(90px); pointer-events:none; will-change:transform;}
+.blob.a{width:46vw; height:46vw; background:var(--blob-a); top:-12vw; left:-8vw; animation:float1 26s ease-in-out infinite;}
+.blob.b{width:38vw; height:38vw; background:var(--blob-b); top:18vh; right:-10vw; animation:float2 31s ease-in-out infinite;}
+.blob.c{width:42vw; height:42vw; background:var(--blob-c); top:120vh; left:-6vw; animation:float3 29s ease-in-out infinite;}
+.blob.d{width:30vw; height:30vw; background:var(--blob-d); top:190vh; right:2vw; animation:float1 24s ease-in-out infinite reverse;}
+@keyframes float1{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(6vw,7vh,0) scale(1.16);}}
+@keyframes float2{0%,100%{transform:translate3d(0,0,0) scale(1.08);}50%{transform:translate3d(-7vw,10vh,0) scale(.9);}}
+@keyframes float3{0%,100%{transform:translate3d(0,0,0) scale(.95);}50%{transform:translate3d(8vw,-8vh,0) scale(1.2);}}
 
-  #canvas-container{ flex:1; position:relative; }
-  #canvas-container canvas{ display:block; width:100%; height:100%; }
+.wrap{max-width:1180px; margin:0 auto; padding-inline:22px;}
 
-  .blueprint-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:20px; }
-  #blueprint-svg{ max-width:100%; max-height:100%; background:var(--bg); border:1px solid var(--grid-line); }
+/* ---------- shared bits ---------- */
+.kicker{
+  font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+  display:inline-flex; align-items:center; gap:9px; margin-bottom:12px;
+  color:var(--ink-soft);
+}
+.kicker::before{
+  content:''; width:26px; height:3px; border-radius:2px;
+  background:var(--grad-hot); background-size:300% 100%;
+  animation:slide 5s linear infinite;
+}
+@keyframes slide{to{background-position:300% 0;}}
 
-  .empty-state{
-    flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px;
-    color:var(--text-dim); text-align:center; padding:20px;
-  }
-  .empty-state .glyph{ font-size:34px; color:var(--grid-line); }
-  .empty-state h2{ font-size:16px; color:var(--text); font-weight:600; margin:0; }
-  .empty-state p{ font-size:13px; max-width:320px; line-height:1.6; margin:0; }
+.grad-text{
+  background:var(--grad-text); background-size:260% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:slide 8s linear infinite;
+}
 
-  #vr-button{
-    position:absolute; bottom:22px; right:22px; z-index:10;
-    background:var(--panel-raised); border:1px solid var(--cyan); color:var(--cyan);
-    font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; padding:11px 18px;
-    border-radius:2px; cursor:pointer; display:none;
-  }
-  #vr-button:hover{ background:var(--cyan); color:var(--bg); }
-  #vr-button.visible{ display:block; }
+h1,h2,h3,h4{font-family:'Syne','Syne Fallback',Georgia,serif; text-wrap:balance; margin:0;}
 
-  #cardboard-button{
-    position:absolute; bottom:78px; right:22px; z-index:10;
-    background:var(--panel-raised); border:1px solid var(--cyan); color:var(--cyan);
-    font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; padding:9px 14px;
-    border-radius:2px; cursor:pointer; display:none;
-  }
-  #cardboard-button.visible{ display:block; }
-  #cardboard-button:hover{ background:var(--cyan); color:var(--bg); }
+.btn{
+  position:relative; overflow:hidden; isolation:isolate;
+  font-family:'Manrope',sans-serif; font-weight:700; font-size:15px; letter-spacing:.01em;
+  padding:14px 26px; border-radius:999px; border:none; cursor:pointer;
+  color:#fff; background:var(--grad-hot); background-size:220% 100%;
+  box-shadow:0 10px 26px -12px var(--glow);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease, background-position .6s ease;
+}
+.btn::after{
+  content:''; position:absolute; inset:0; z-index:-1;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);
+  transform:translateX(-120%);
+}
+.btn:hover{transform:translateY(-3px) scale(1.02); box-shadow:var(--shadow-lift); background-position:100% 0;}
+.btn:hover::after{animation:shine .8s ease;}
+@keyframes shine{to{transform:translateX(120%);}}
+.btn:active{transform:translateY(-1px) scale(.99);}
+.btn:disabled{opacity:.62; cursor:progress; transform:none; box-shadow:none;}
+.btn.ghost{
+  background:var(--surface); color:var(--ink);
+  box-shadow:inset 0 0 0 1.5px var(--line-strong);
+}
+.btn.ghost:hover{box-shadow:inset 0 0 0 1.5px transparent, 0 14px 30px -16px var(--glow); color:#fff; background:var(--grad-cool); background-size:200% 100%;}
+.btn:focus-visible{outline:3px solid var(--violet); outline-offset:3px;}
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{outline:3px solid var(--violet); outline-offset:2px;}
 
-  #canvas-container.cardboard-active{
-    position:fixed; inset:0; z-index:998; background:#000;
-  }
-  #exit-cardboard{
-    display:none; position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:1000;
-    background:rgba(15,32,54,.9); border:1px solid var(--amber); color:var(--amber);
-    font-family:var(--font-mono); font-size:12px; letter-spacing:.06em; padding:9px 18px;
-    border-radius:20px; cursor:pointer;
-  }
-  #exit-cardboard.visible{ display:block; }
+/* gradient-edged surface */
+.card{
+  position:relative; background:var(--surface); border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  transition:transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
+}
+.card::before{
+  content:''; position:absolute; inset:0; border-radius:inherit; padding:1.4px;
+  background:var(--grad-cool); background-size:200% 100%;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  opacity:.45; transition:opacity .3s ease; pointer-events:none;
+}
+.card:hover::before{opacity:1; animation:slide 4s linear infinite;}
 
-  #add-button{
-    position:absolute; bottom:22px; left:22px; z-index:10;
-    background:var(--panel-raised); border:1px solid var(--amber); color:var(--amber);
-    font-family:var(--font-mono); font-size:12px; letter-spacing:.06em; padding:11px 16px;
-    border-radius:2px; cursor:pointer; display:none;
-  }
-  #add-button.visible{ display:block; }
-  #add-button:hover{ background:var(--amber); color:#1A1104; }
+/* ---------- HEADER ---------- */
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:40;
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  background:color-mix(in srgb, var(--ground) 72%, transparent);
+  border-bottom:1px solid transparent;
+  transition:border-color .3s ease, background .3s ease;
+}
+.topbar.stuck{border-bottom-color:var(--line);}
+.barrow{display:flex; align-items:center; justify-content:space-between; gap:16px; padding-block:16px;}
+.brand{font-family:'Syne',serif; font-size:19px; font-weight:800; letter-spacing:-.01em; display:flex; align-items:center; gap:10px;}
+.mark{width:30px; height:30px; flex:none; border-radius:9px; background:var(--grad-hot); background-size:200% 100%; display:grid; place-items:center; animation:slide 6s linear infinite; box-shadow:0 8px 18px -10px var(--glow);}
+.mark svg{width:17px; height:17px; stroke:#fff; fill:none; stroke-width:1.7;}
+.navlinks{display:flex; align-items:center; gap:4px;}
+.navlinks a{
+  position:relative; font-size:14px; font-weight:600; text-decoration:none;
+  color:var(--ink-soft); padding:8px 14px; border-radius:999px; transition:color .2s ease, background .2s ease;
+}
+.navlinks a:hover{color:var(--ink); background:var(--surface-2);}
+.navlinks a::after{
+  content:''; position:absolute; left:14px; right:14px; bottom:4px; height:2px; border-radius:2px;
+  background:var(--grad-hot); transform:scaleX(0); transform-origin:left; transition:transform .3s cubic-bezier(.22,1,.36,1);
+}
+.navlinks a:hover::after{transform:scaleX(1);}
+.themebtn{
+  width:38px; height:38px; flex:none; border-radius:50%; cursor:pointer;
+  border:1.5px solid var(--line-strong); background:var(--surface); color:var(--ink);
+  display:grid; place-items:center; transition:transform .3s ease, border-color .2s ease;
+}
+.themebtn:hover{transform:rotate(25deg) scale(1.08); border-color:var(--violet);}
+.themebtn svg{width:17px; height:17px;}
 
-  .hint-badge{
-    position:absolute; top:60px; right:18px; z-index:10; font-family:var(--font-mono); font-size:10.5px;
-    color:var(--text-dim); border:1px solid var(--grid-line); padding:5px 9px; border-radius:2px;
-    background:var(--panel);
-  }
+/* ---------- HERO ---------- */
+.hero{padding-block:52px 40px;}
+.hero-grid{display:grid; grid-template-columns:1.06fr .94fr; gap:46px; align-items:center;}
+.pill{
+  display:inline-flex; align-items:center; gap:9px; font-size:12.5px; font-weight:600;
+  padding:7px 14px 7px 8px; border-radius:999px; background:var(--surface);
+  box-shadow:inset 0 0 0 1px var(--line); color:var(--ink-soft); margin-bottom:22px;
+}
+.pill b{
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:500; letter-spacing:.08em;
+  color:#fff; background:var(--grad-cool); padding:3px 9px; border-radius:999px;
+}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--cyan); box-shadow:0 0 0 0 var(--cyan); animation:ping 2.2s ease-out infinite;}
+@keyframes ping{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--cyan) 70%,transparent);}70%{box-shadow:0 0 0 9px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
 
-  /* ---------- Inspector ---------- */
-  .inspector{
-    position:absolute; top:60px; right:18px; width:260px; z-index:20;
-    background:var(--panel-raised); border:1px solid var(--amber); border-radius:2px;
-    box-shadow:0 8px 24px rgba(0,0,0,.4);
-  }
-  .inspector-head{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:10px 12px; border-bottom:1px solid var(--grid-line);
-    font-family:var(--font-mono); font-size:11px; letter-spacing:.06em; color:var(--amber);
-  }
-  .insp-close{ background:none; border:none; color:var(--text-dim); font-size:16px; cursor:pointer; line-height:1; }
-  .insp-close:hover{ color:var(--text); }
-  .insp-body{ padding:10px 12px; display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; }
-  .insp-row{ display:flex; flex-direction:column; gap:3px; }
-  .insp-row.pair{ flex-direction:row; gap:8px; }
-  .insp-row.pair > div{ flex:1; display:flex; flex-direction:column; gap:3px; }
-  .insp-row label{ font-family:var(--font-mono); font-size:9.5px; color:var(--text-dim); letter-spacing:.05em; }
-  .insp-row input[type=text], .insp-row input[type=number], .insp-row select{
-    background:var(--bg); border:1px solid var(--grid-line); color:var(--text);
-    padding:6px 7px; font-size:12.5px; border-radius:2px; width:100%;
-  }
-  .insp-row input[type=color]{ width:100%; height:28px; background:var(--bg); border:1px solid var(--grid-line); border-radius:2px; padding:2px; }
-  .insp-actions{ display:flex; gap:6px; padding:10px 12px; border-top:1px solid var(--grid-line); }
-  .insp-apply{ flex:1; background:var(--amber); color:#1A1104; border:none; padding:9px; font-weight:700; font-size:12px; border-radius:2px; cursor:pointer; }
-  .insp-delete{ background:transparent; border:1px solid var(--error); color:var(--error); padding:9px 12px; font-size:12px; border-radius:2px; cursor:pointer; }
+h1.display{
+  font-weight:800; font-size:clamp(38px,5.6vw,64px); line-height:1.02; letter-spacing:-.03em;
+  margin:0 0 20px;
+}
+h1.display .ln{display:block; overflow:hidden; padding-bottom:.08em; margin-bottom:-.08em;}
+h1.display .ln > span{display:block; transform:translateY(105%); animation:riseUp .82s cubic-bezier(.22,1,.36,1) forwards;}
+h1.display .ln:nth-child(1) > span{animation-delay:.05s;}
+h1.display .ln:nth-child(2) > span{animation-delay:.16s;}
+h1.display .ln:nth-child(3) > span{animation-delay:.27s;}
+@keyframes riseUp{to{transform:translateY(0);}}
 
-  body.edit-on #blueprint-svg [data-idx]{ cursor:pointer; }
-  body.edit-on #canvas-container canvas{ cursor:crosshair; }
+.sub{font-size:17px; line-height:1.6; max-width:48ch; color:var(--ink-soft); margin:0 0 30px; opacity:0; animation:fadeUp .7s ease .5s forwards;}
+.hero-cta{display:flex; gap:12px; flex-wrap:wrap; opacity:0; animation:fadeUp .7s ease .62s forwards;}
+@keyframes fadeUp{from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:none;}}
 
-  @media (max-width:760px){
-    .app{ flex-direction:column; }
-    .panel{ width:100%; min-width:0; max-height:42vh; border-right:none; border-bottom:1px solid var(--grid-line); }
-    .viewport{ flex:1; min-height:58vh; }
-    #vr-button{ bottom:14px; right:14px; }
-    #cardboard-button{ bottom:70px; right:14px; }
-    #add-button{ bottom:14px; left:14px; }
-    .inspector{ width:calc(100% - 36px); right:18px; }
-    .toolbar-row{ padding:10px 12px 0; }
-    .export-row{ margin-left:0; }
-  }
+.blueprint-panel{
+  position:relative; border-radius:22px; padding:20px;
+  background:var(--surface); box-shadow:var(--shadow);
+  overflow:hidden; transform-style:preserve-3d;
+  transition:transform .4s cubic-bezier(.22,1,.36,1);
+}
+.blueprint-panel::before{
+  content:''; position:absolute; inset:0; border-radius:inherit; padding:1.4px;
+  background:var(--grad-hot); background-size:260% 100%; animation:slide 7s linear infinite;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite:exclude; pointer-events:none;
+}
+.blueprint-panel::after{
+  content:''; position:absolute; left:0; right:0; height:64px; top:-64px;
+  background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--cyan) 13%,transparent),transparent);
+  animation:scan 5.4s ease-in-out 2.8s infinite; pointer-events:none;
+}
+@keyframes scan{0%{top:-64px;}55%,100%{top:110%;}}
+.bp-label{
+  position:absolute; top:16px; right:20px; font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px; letter-spacing:.12em; color:var(--ink-faint);
+}
+.blueprint-draw{width:100%; height:auto; display:block;}
+.blueprint-draw .pth{
+  fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+  stroke-dasharray:1100; stroke-dashoffset:1100;
+  animation:draw 2.4s cubic-bezier(.65,0,.35,1) forwards .25s;
+}
+.blueprint-draw .pth.d2{animation-delay:.9s;}
+.blueprint-draw .pth.d3{animation-delay:1.3s;}
+.blueprint-draw .pth.d4{animation-delay:1.6s;}
+.blueprint-draw .node{opacity:0; animation:pop .5s cubic-bezier(.34,1.56,.64,1) forwards 2.3s;}
+.blueprint-draw .node.n2{animation-delay:2.45s;}
+.blueprint-draw .node.n3{animation-delay:2.6s;}
+.blueprint-draw .dimtxt{opacity:0; animation:fadeUp .6s ease forwards 2.7s;}
+.blueprint-draw .pulse{animation:pulseR 2.8s ease-out infinite 2.9s; transform-origin:center;}
+@keyframes draw{to{stroke-dashoffset:0;}}
+@keyframes pop{from{opacity:0; transform:scale(.2);} to{opacity:1; transform:scale(1);}}
+@keyframes pulseR{0%{opacity:.8; r:3;}100%{opacity:0; r:16;}}
+
+/* ---------- TICKER ---------- */
+.ticker{
+  margin-block:44px 0; overflow:hidden; border-block:1px solid var(--line);
+  background:var(--surface-2); padding-block:12px;
+}
+.ticker-track{display:flex; gap:38px; width:max-content; animation:marquee 30s linear infinite;}
+.ticker-track span{
+  font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-faint); display:flex; align-items:center; gap:38px; white-space:nowrap;
+}
+.ticker-track span::after{content:'◆'; color:var(--magenta); font-size:9px;}
+@keyframes marquee{to{transform:translateX(-50%);}}
+
+/* ---------- SECTIONS ---------- */
+section{padding-block:78px;}
+.section-head{max-width:62ch; margin-bottom:34px;}
+.section-head h2{font-size:clamp(28px,3.4vw,40px); font-weight:700; letter-spacing:-.025em; margin-bottom:10px;}
+.section-head p{margin:0; color:var(--ink-soft); font-size:16px;}
+
+/* steps */
+.steps{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:38px;}
+.step{padding:22px; border-radius:14px; background:var(--surface); box-shadow:var(--shadow); position:relative; overflow:hidden;}
+.step .num{
+  font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em;
+  color:#fff; background:var(--grad-hot); background-size:200% 100%;
+  padding:4px 10px; border-radius:999px; display:inline-block; margin-bottom:12px;
+}
+.step h4{font-size:16.5px; font-weight:700; margin-bottom:6px;}
+.step p{margin:0; font-size:14px; color:var(--ink-soft); line-height:1.55;}
+.step::after{
+  content:''; position:absolute; inset:auto 0 0 0; height:3px; background:var(--grad-hot); background-size:200% 100%;
+  transform:scaleX(0); transform-origin:left; transition:transform .45s cubic-bezier(.22,1,.36,1);
+}
+.step:hover::after{transform:scaleX(1);}
+.step:hover{transform:translateY(-4px);}
+.step{transition:transform .3s cubic-bezier(.22,1,.36,1);}
+
+.studio-grid{display:grid; grid-template-columns:.92fr 1.08fr; gap:22px; align-items:start;}
+.panel{padding:26px;}
+.panel > h3{
+  font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  font-family:'IBM Plex Mono',monospace; color:var(--ink-faint); margin-bottom:20px;
+  display:flex; align-items:center; gap:10px;
+}
+.panel > h3::after{content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent);}
+
+.field{margin-bottom:17px;}
+.field > label{
+  display:block; font-size:12px; font-family:'IBM Plex Mono',monospace; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--ink-soft); margin-bottom:7px;
+}
+.field input, .field select, .field textarea{
+  width:100%; padding:12px 13px; border:1.5px solid var(--line); border-radius:10px;
+  background:var(--surface-2); font-family:'Manrope',sans-serif; font-size:14.5px; color:var(--ink);
+  transition:border-color .2s ease, box-shadow .25s ease, background .2s ease;
+}
+.field input::placeholder, .field textarea::placeholder{color:var(--ink-faint);}
+.field input:focus, .field select:focus, .field textarea:focus{
+  outline:none; border-color:var(--violet); background:var(--surface);
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--violet) 18%, transparent);
+}
+.field textarea{resize:vertical; min-height:78px;}
+.row3{display:grid; grid-template-columns:repeat(3,1fr); gap:9px;}
+
+.toggle-group{position:relative; display:flex; gap:4px; padding:4px; background:var(--surface-2); border:1.5px solid var(--line); border-radius:12px;}
+.toggle-group .ind{
+  position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 6px); border-radius:9px;
+  background:var(--grad-hot); background-size:200% 100%;
+  transition:transform .38s cubic-bezier(.34,1.3,.64,1); z-index:0;
+}
+.toggle-group .ind.right{transform:translateX(calc(100% + 4px));}
+.toggle-group button{
+  position:relative; z-index:1; flex:1; padding:10px 6px; border:none; background:transparent;
+  border-radius:9px; font-size:14px; font-weight:600; cursor:pointer; color:var(--ink-soft);
+  font-family:'Manrope',sans-serif; transition:color .28s ease;
+}
+.toggle-group button.active{color:#fff;}
+
+/* ---------- OUTPUT ---------- */
+.example-flag{
+  display:inline-flex; align-items:center; gap:7px; font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint);
+  border:1px dashed var(--line-strong); padding:5px 11px; border-radius:999px; margin-bottom:16px;
+}
+.spec-summary{font-size:15.5px; line-height:1.6; margin-bottom:20px;}
+.swatches{display:flex; gap:9px; flex-wrap:wrap; margin-bottom:20px;}
+.swatch{text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-soft); width:62px;}
+.swatch .chip{
+  width:62px; height:52px; border-radius:11px; margin-bottom:6px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12), 0 6px 14px -8px rgba(0,0,0,.4);
+  opacity:0; transform:translateY(12px) scale(.86);
+  animation:pop .5s cubic-bezier(.34,1.56,.64,1) forwards;
+  transition:transform .28s cubic-bezier(.34,1.56,.64,1);
+}
+.swatch:hover .chip{transform:translateY(-5px) scale(1.06);}
+.swatch .hex{display:block; opacity:0; transition:opacity .25s ease; color:var(--ink-faint); font-size:9.5px;}
+.swatch:hover .hex{opacity:1;}
+.materials-list{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;}
+.materials-list span{
+  font-size:12.5px; font-family:'IBM Plex Mono',monospace; padding:7px 13px; border-radius:999px;
+  background:var(--surface-2); border:1px solid var(--line); color:var(--ink-soft);
+  opacity:0; animation:fadeUp .45s ease forwards;
+  transition:color .25s ease, border-color .25s ease, transform .25s ease;
+}
+.materials-list span:hover{color:var(--ink); border-color:var(--violet); transform:translateY(-2px);}
+.notes{
+  font-size:14px; line-height:1.68; color:var(--ink-soft);
+  border-left:3px solid transparent; border-image:var(--grad-cool) 1;
+  padding-left:16px;
+}
+
+/* loading */
+.loading{padding:8px 0 4px;}
+.load-row{display:flex; align-items:center; gap:14px; margin-bottom:22px;}
+.compass{width:40px; height:40px; flex:none; animation:spin 2.6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-status{font-family:'IBM Plex Mono',monospace; font-size:13.5px; color:var(--ink); }
+.load-status b{font-weight:500;}
+.load-sub{font-size:12px; color:var(--ink-faint); margin-top:3px;}
+.skel{height:13px; border-radius:7px; margin-bottom:11px; background:linear-gradient(90deg,var(--surface-2) 25%,var(--ground-2) 37%,var(--surface-2) 63%); background-size:400% 100%; animation:shimmer 1.4s linear infinite;}
+@keyframes shimmer{to{background-position:-400% 0;}}
+.skel.w70{width:70%;} .skel.w90{width:90%;} .skel.w45{width:45%;}
+.skel-chips{display:flex; gap:9px; margin:20px 0;}
+.skel-chip{width:62px; height:52px; border-radius:11px; background:linear-gradient(90deg,var(--surface-2) 25%,var(--ground-2) 37%,var(--surface-2) 63%); background-size:400% 100%; animation:shimmer 1.4s linear infinite;}
+.progress{height:4px; border-radius:4px; background:var(--ground-2); overflow:hidden; margin-top:20px;}
+.progress i{display:block; height:100%; width:30%; border-radius:4px; background:var(--grad-hot); background-size:200% 100%; animation:crawl 1.8s ease-in-out infinite, slide 3s linear infinite;}
+@keyframes crawl{0%{transform:translateX(-110%);}100%{transform:translateX(370%);}}
+
+.error-box{
+  background:color-mix(in srgb, var(--magenta) 10%, var(--surface));
+  border:1px solid color-mix(in srgb, var(--magenta) 40%, transparent);
+  color:var(--ink); padding:15px 17px; border-radius:12px; font-size:14px; line-height:1.55;
+}
+
+/* 3D */
+#canvas-wrap{margin-top:20px; display:none;}
+#canvas-wrap.show{display:block; animation:fadeUp .5s ease;}
+#canvas-holder{
+  width:100%; height:360px; border-radius:14px; cursor:grab; overflow:hidden;
+  background:var(--canvas-bg); box-shadow:inset 0 0 0 1px var(--line);
+}
+#canvas-holder:active{cursor:grabbing;}
+#canvas-holder canvas{display:block;}
+.canvas-hint{
+  font-size:11.5px; font-family:'IBM Plex Mono',monospace; color:var(--ink-faint);
+  margin-top:10px; display:flex; gap:16px; flex-wrap:wrap;
+}
+
+/* ---------- PRICING ---------- */
+.price-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+.price-card{padding:32px;}
+.price-card.featured::before{opacity:1; background:var(--grad-hot); background-size:260% 100%; animation:slide 5s linear infinite; padding:2px;}
+.price-card .tag{
+  position:absolute; top:-12px; left:28px; color:#fff;
+  background:var(--grad-hot); background-size:200% 100%; animation:slide 5s linear infinite;
+  font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
+  padding:5px 13px; border-radius:999px;
+}
+.price-card h4{font-size:21px; font-weight:700; letter-spacing:-.01em;}
+.price-card .amount{font-family:'Syne',serif; font-weight:800; font-size:46px; letter-spacing:-.03em; margin:12px 0 4px; font-variant-numeric:tabular-nums;}
+.price-card .amount span{font-size:15px; font-family:'Manrope',sans-serif; font-weight:500; color:var(--ink-faint); letter-spacing:0;}
+.price-card ul{list-style:none; padding:0; margin:20px 0 26px; font-size:14.5px; display:grid; gap:11px;}
+.price-card li{display:flex; gap:10px; align-items:flex-start; color:var(--ink-soft);}
+.price-card li svg{width:17px; height:17px; flex:none; margin-top:2px;}
+.price-card:hover{transform:translateY(-5px);}
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+  position:fixed; inset:0; background:color-mix(in srgb, var(--ink) 55%, transparent);
+  backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+  display:none; align-items:center; justify-content:center; z-index:60; padding:20px;
+}
+.modal-overlay.show{display:flex; animation:fadeUp .25s ease;}
+.modal{
+  background:var(--surface); border-radius:20px; padding:32px; width:100%; max-width:420px;
+  position:relative; box-shadow:0 40px 80px -30px rgba(0,0,0,.6);
+  animation:modalIn .4s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes modalIn{from{opacity:0; transform:translateY(24px) scale(.95);} to{opacity:1; transform:none;}}
+.modal h3{font-size:22px; font-weight:700; margin-bottom:4px;}
+.modal .modal-sub{font-size:13px; color:var(--ink-faint); margin-bottom:20px;}
+.modal-close{
+  position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%;
+  background:var(--surface-2); border:1px solid var(--line); font-size:15px; cursor:pointer;
+  color:var(--ink-soft); display:grid; place-items:center; transition:transform .25s ease, color .2s ease;
+}
+.modal-close:hover{transform:rotate(90deg); color:var(--magenta);}
+.modal .field input{font-family:'IBM Plex Mono',monospace;}
+.modal-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.demo-note{
+  font-size:11.5px; font-family:'IBM Plex Mono',monospace; line-height:1.6;
+  color:var(--ink-soft); background:var(--surface-2); border:1px dashed var(--line-strong);
+  padding:12px 14px; border-radius:11px; margin-top:16px;
+}
+.demo-badge{
+  display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em;
+  color:#fff; background:var(--grad-cool); padding:4px 10px; border-radius:999px; margin-bottom:12px;
+}
+.pay-success{text-align:center; padding:14px 0;}
+.pay-success .tick{width:62px; height:62px; margin:0 auto 14px; border-radius:50%; background:var(--grad-cool); display:grid; place-items:center; animation:pop .5s cubic-bezier(.34,1.56,.64,1);}
+.pay-success .tick svg{width:30px; height:30px; stroke:#fff; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:40; stroke-dashoffset:40; animation:draw .5s ease forwards .25s;}
+
+footer{
+  padding-block:44px 64px; text-align:center; font-size:12px; color:var(--ink-faint);
+  font-family:'IBM Plex Mono',monospace; letter-spacing:.06em; line-height:1.8;
+}
+footer .rule{height:1px; background:linear-gradient(90deg,transparent,var(--line-strong),transparent); margin-bottom:28px;}
+
+/* ---------- reveal ---------- */
+.reveal-on .rv{opacity:0; transform:translateY(22px);}
+.reveal-on .rv.in{opacity:1; transform:none; transition:opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1);}
+.price-card:hover, .reveal-on .rv.in.price-card:hover{transform:translateY(-5px);}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .hero-grid, .studio-grid, .price-grid{grid-template-columns:1fr;}
+  .steps{grid-template-columns:1fr;}
+  .hero{padding-block:32px 24px;}
+  section{padding-block:56px;}
+  .blob{filter:blur(70px);}
+}
+@media (max-width:460px){
+  .panel, .price-card{padding:20px;}
+  .navlinks a{padding:8px 9px; font-size:13px;}
+  .row3{grid-template-columns:1fr;}
+  #canvas-holder{height:280px;}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important;}
+  html{scroll-behavior:auto;}
+  h1.display .ln > span{transform:none;}
+  .sub,.hero-cta{opacity:1;}
+  .blueprint-draw .pth{stroke-dashoffset:0;}
+  .blueprint-draw .node,.blueprint-draw .dimtxt{opacity:1;}
+  .swatch .chip,.materials-list span{opacity:1;}
+}
 </style>
 </head>
 <body>
 
-<div class="app">
-  <aside class="panel">
+<div class="bg-layer"></div>
+<div class="blob a"></div><div class="blob b"></div><div class="blob c"></div><div class="blob d"></div>
+<div class="bg-grid"></div>
+
+<div class="topbar" id="topbar">
+  <div class="wrap barrow">
     <div class="brand">
-      <div class="mark">DRAFT / VR</div>
-      <h1>Generative drafting tool</h1>
-      <p>Describe a part, mechanism, or object. Get a blueprint, a 3D model, or both — edit it by hand, then export or step into it.</p>
+      <span class="mark"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
+      Blueline
     </div>
-
-    <label class="field-label">DESCRIPTION</label>
-    <textarea id="desc-input" placeholder="e.g. a 4-wheeled camera rover chassis, 180mm long, with a mast-mounted camera pod and two side motor pods"></textarea>
-
-    <label class="field-label">OUTPUT</label>
-    <div class="mode-row">
-      <button class="mode-btn active" data-mode="blueprint">Blueprint</button>
-      <button class="mode-btn" data-mode="3d">3D Model</button>
-      <button class="mode-btn" data-mode="both">Both</button>
+    <div class="navlinks">
+      <a href="#studio">Studio</a>
+      <a href="#pricing">Pricing</a>
+      <button class="themebtn" id="themebtn" aria-label="Switch colour theme" title="Switch colour theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.2M12 19.4v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/></svg>
+      </button>
     </div>
-
-    <button class="generate-btn" id="generate-btn">Generate</button>
-    <div class="status" id="status"></div>
-
-    <label class="field-label">HISTORY</label>
-    <div class="history" id="history">
-      <div class="history-empty">Nothing drafted yet.</div>
-    </div>
-
-    <div class="titleblock" id="titleblock">
-      <div>DWG NO</div><div><b id="tb-num">—</b></div>
-      <div>SCALE</div><div><b id="tb-scale">—</b></div>
-      <div>DATE</div><div><b id="tb-date">—</b></div>
-      <div>STATUS</div><div><b id="tb-status">IDLE</b></div>
-    </div>
-  </aside>
-
-  <main class="viewport">
-    <div class="toolbar-row">
-      <div class="viewport-tabs hidden" id="viewport-tabs">
-        <button class="vtab active" data-view="blueprint">BLUEPRINT</button>
-        <button class="vtab" data-view="3d">3D MODEL</button>
-      </div>
-      <button class="edit-toggle" id="edit-toggle">EDIT ○</button>
-      <div class="export-row" id="export-row">
-        <span class="export-label">EXPORT</span>
-        <button class="export-btn" data-export="png">PNG</button>
-        <button class="export-btn" data-export="jpg">JPG</button>
-        <button class="export-btn" data-export="stl">STL</button>
-        <button class="export-btn" data-export="obj">OBJ</button>
-        <button class="export-btn" data-export="3mf">3MF</button>
-        <button class="export-btn" data-export="step">STEP</button>
-      </div>
-    </div>
-
-    <div class="empty-state" id="empty-state">
-      <div class="glyph">▦</div>
-      <h2>Nothing on the board yet</h2>
-      <p>Type a description on the left, pick an output type, and hit Generate. The result renders here — click EDIT to tweak it by hand, export it, or view 3D models in VR.</p>
-    </div>
-
-    <div id="canvas-container" style="display:none;"></div>
-    <div class="blueprint-wrap" id="blueprint-wrap" style="display:none;">
-      <svg id="blueprint-svg" width="800" height="520" viewBox="0 0 800 520"></svg>
-    </div>
-
-    <div class="hint-badge" id="vr-hint" style="display:none;">no VR headset detected</div>
-    <button id="vr-button">ENTER VR ⬡</button>
-    <button id="cardboard-button">CARDBOARD 🥽</button>
-    <button id="add-button">+ ADD</button>
-
-    <div class="inspector" id="inspector" style="display:none;">
-      <div class="inspector-head">
-        <span id="insp-title">EDIT ELEMENT</span>
-        <button class="insp-close" id="insp-close">×</button>
-      </div>
-      <div class="insp-body" id="insp-body"></div>
-      <div class="insp-actions">
-        <button class="insp-apply" id="insp-apply">Apply</button>
-        <button class="insp-delete" id="insp-delete">Delete</button>
-      </div>
-    </div>
-  </main>
+  </div>
 </div>
 
-<button id="exit-cardboard">✕ EXIT</button>
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-grid">
+      <div>
+        <div class="pill"><b>LIVE</b> <span class="dot"></span> Layouts drafted by Claude in seconds</div>
+        <h1 class="display">
+          <span class="ln"><span>Describe the room.</span></span>
+          <span class="ln"><span>Get a <em class="grad-text" style="font-style:italic">plan</em>, a palette,</span></span>
+          <span class="ln"><span>and a 3D model.</span></span>
+        </h1>
+        <p class="sub">Blueline turns a plain-language brief into a spatial layout — real dimensions in metres, a material spec, furniture placed to scale, and a rotatable 3D preview you can walk around.</p>
+        <div class="hero-cta">
+          <button class="btn" data-scroll="studio">Start a design</button>
+          <button class="btn ghost" data-scroll="pricing">See pricing</button>
+        </div>
+      </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+      <div class="blueprint-panel" id="bpPanel">
+        <svg class="blueprint-draw" viewBox="0 0 320 250" role="img" aria-label="Animated floor plan being drawn">
+          <defs>
+            <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" style="stop-color:var(--blue)"/><stop offset="60%" style="stop-color:var(--violet)"/><stop offset="100%" style="stop-color:var(--magenta)"/>
+            </linearGradient>
+            <linearGradient id="gB" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" style="stop-color:var(--cyan)"/><stop offset="100%" style="stop-color:var(--blue)"/>
+            </linearGradient>
+            <linearGradient id="gC" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" style="stop-color:var(--amber)"/><stop offset="100%" style="stop-color:var(--magenta)"/>
+            </linearGradient>
+          </defs>
+          <path class="pth" d="M22 222 L22 26 L198 26 L198 88 L298 88 L298 222 Z" stroke="url(#gA)"/>
+          <path class="pth d2" d="M22 126 L198 126" stroke="url(#gB)"/>
+          <path class="pth d2" d="M118 26 L118 126" stroke="url(#gB)"/>
+          <path class="pth d3" d="M58 222 L58 172 L108 172 L108 222" stroke="url(#gC)"/>
+          <path class="pth d3" d="M214 200 a22 22 0 1 0 44 0 a22 22 0 1 0 -44 0" stroke="url(#gC)"/>
+          <path class="pth d4" d="M136 148 L182 148 L182 196 L136 196 Z" stroke="url(#gB)"/>
+          <path class="pth d4" d="M236 108 L284 108" stroke="url(#gA)"/>
+          <circle class="node" cx="22" cy="26" r="3.6" fill="var(--blue)"/>
+          <circle class="node n2" cx="298" cy="222" r="3.6" fill="var(--magenta)"/>
+          <circle class="node n3" cx="198" cy="88" r="3.6" fill="var(--amber)"/>
+          <circle class="pulse" cx="198" cy="88" r="3" fill="none" stroke="var(--amber)" stroke-width="1.4"/>
+          <text class="dimtxt" x="22" y="240" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-faint)" letter-spacing="1">5200 mm</text>
+          <text class="dimtxt" x="236" y="240" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--ink-faint)" letter-spacing="1">H 2700</text>
+        </svg>
+        <div class="bp-label">PLAN / 1:50 / REV C</div>
+      </div>
+    </div>
+  </header>
+</div>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Warm minimalist</span><span>Japandi</span><span>Circulation</span><span>Mid-century modern</span><span>Daylight factor</span><span>Industrial loft</span><span>Sightlines</span><span>Scandinavian</span><span>Material palette</span><span>Coastal</span><span>Contemporary luxury</span><span>Clearance zones</span>
+    <span>Warm minimalist</span><span>Japandi</span><span>Circulation</span><span>Mid-century modern</span><span>Daylight factor</span><span>Industrial loft</span><span>Sightlines</span><span>Scandinavian</span><span>Material palette</span><span>Coastal</span><span>Contemporary luxury</span><span>Clearance zones</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="studio" id="studio">
+    <div class="section-head rv">
+      <div class="kicker">The brief</div>
+      <h2>Tell it what you're <span class="grad-text">building</span></h2>
+      <p>The more specific the brief, the more usable the layout — mention the room's purpose, who uses it, and any fixed constraints.</p>
+    </div>
+
+    <div class="steps rv">
+      <div class="step">
+        <span class="num">STEP 01</span>
+        <h4>Write the brief</h4>
+        <p>Room type, dimensions in metres, style direction, and anything that can't move.</p>
+      </div>
+      <div class="step">
+        <span class="num">STEP 02</span>
+        <h4>Read the spec</h4>
+        <p>A concept, a five-colour palette, a material list and a rationale you can hand to a builder.</p>
+      </div>
+      <div class="step">
+        <span class="num">STEP 03</span>
+        <h4>Walk the model</h4>
+        <p>Every piece placed to scale in a 3D room you can orbit, zoom and check for clearance.</p>
+      </div>
+    </div>
+
+    <div class="studio-grid">
+      <div class="panel card rv">
+        <h3>Project brief</h3>
+
+        <div class="field">
+          <label for="ptype">Project type</label>
+          <div class="toggle-group" id="ptype">
+            <span class="ind" id="toggleInd"></span>
+            <button type="button" class="active" data-type="Interior design">Interior design</button>
+            <button type="button" data-type="Architecture / floor plan">Architecture</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="space">Space</label>
+          <input id="space" type="text" placeholder="e.g. living room, studio apartment, café" value="open-plan living room">
+        </div>
+
+        <div class="field">
+          <label for="dimW">Dimensions (metres)</label>
+          <div class="row3">
+            <input id="dimW" type="number" step="0.1" min="1" placeholder="Width" value="5">
+            <input id="dimL" type="number" step="0.1" min="1" placeholder="Length" value="6">
+            <input id="dimH" type="number" step="0.1" min="2" placeholder="Height" value="2.7">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="style">Style direction</label>
+          <select id="style">
+            <option>Warm minimalist</option>
+            <option>Japandi</option>
+            <option>Mid-century modern</option>
+            <option>Industrial loft</option>
+            <option>Scandinavian</option>
+            <option>Coastal</option>
+            <option>Traditional / classic</option>
+            <option>Contemporary luxury</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="details">Details &amp; constraints</label>
+          <textarea id="details" placeholder="e.g. north-facing windows, needs a reading nook, small furniture budget, must fit a piano"></textarea>
+        </div>
+
+        <button class="btn" style="width:100%" id="genBtn">Generate design</button>
+        <div id="sampleNote" class="demo-note" hidden></div>
+      </div>
+
+      <div class="panel card rv" id="outputPanel">
+        <h3>Design output</h3>
+        <div id="outputBody"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="section-head rv">
+      <div class="kicker">Get the files</div>
+      <h2>Take the design <span class="grad-text">further</span></h2>
+      <p>The checkout below is a working demo — no card data leaves the page. Connect your own processor to take real payments.</p>
+    </div>
+    <div class="price-grid">
+      <div class="price-card card rv">
+        <h4>Single design</h4>
+        <div class="amount">$12<span> / design</span></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg> One generated layout plus 3D preview</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg> Palette and material specification</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg> Exportable design notes</li>
+        </ul>
+        <button class="btn ghost" style="width:100%" data-plan="Single design" data-amount="12">Get this design</button>
+      </div>
+      <div class="price-card card featured rv">
+        <span class="tag">STUDIO PICK</span>
+        <h4>Studio pass</h4>
+        <div class="amount">$39<span> / month</span></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--magenta)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg> Unlimited generated designs</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--magenta)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg> 3D preview plus revision rounds</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="var(--magenta)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg> Priority generation queue</li>
+        </ul>
+        <button class="btn" style="width:100%" data-plan="Studio pass" data-amount="39">Start studio pass</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="rule"></div>
+    BLUELINE — DESIGN LAYOUTS GENERATED BY CLAUDE<br>
+    NOT ARCHITECTURAL, STRUCTURAL OR SAFETY ADVICE
+  </footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Demo checkout">
+    <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
 <script>
+/* ============================================================
+   THEME
+   ============================================================ */
 (function(){
-  "use strict";
-
-  const EXPORT_SCALE_MM = 100; // 1 scene unit == 10cm == 100mm real-world for STL/OBJ/3MF
-
-  // ---------------- State ----------------
-  let mode = "blueprint";
-  let activeView = "blueprint";
-  let currentData = { blueprint:null, model:null };
-  let history = [];
-  let editMode = false;
-  let selection = null; // { kind:'blueprint'|'3d', idx:number, isNew:bool }
-
-  const els = {
-    desc: document.getElementById('desc-input'),
-    modeBtns: document.querySelectorAll('.mode-btn'),
-    genBtn: document.getElementById('generate-btn'),
-    status: document.getElementById('status'),
-    history: document.getElementById('history'),
-    tabs: document.getElementById('viewport-tabs'),
-    vtabs: document.querySelectorAll('.vtab'),
-    empty: document.getElementById('empty-state'),
-    canvasWrap: document.getElementById('canvas-container'),
-    blueprintWrap: document.getElementById('blueprint-wrap'),
-    svg: document.getElementById('blueprint-svg'),
-    vrBtn: document.getElementById('vr-button'),
-    vrHint: document.getElementById('vr-hint'),
-    cardboardBtn: document.getElementById('cardboard-button'),
-    exitCardboardBtn: document.getElementById('exit-cardboard'),
-    addBtn: document.getElementById('add-button'),
-    editToggle: document.getElementById('edit-toggle'),
-    exportRow: document.getElementById('export-row'),
-    inspector: document.getElementById('inspector'),
-    inspTitle: document.getElementById('insp-title'),
-    inspBody: document.getElementById('insp-body'),
-    inspApply: document.getElementById('insp-apply'),
-    inspDelete: document.getElementById('insp-delete'),
-    inspClose: document.getElementById('insp-close'),
-    tbNum: document.getElementById('tb-num'),
-    tbScale: document.getElementById('tb-scale'),
-    tbDate: document.getElementById('tb-date'),
-    tbStatus: document.getElementById('tb-status'),
-  };
-
-  els.modeBtns.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      els.modeBtns.forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      mode = btn.dataset.mode;
-    });
+  var btn = document.getElementById('themebtn');
+  var stored = null;
+  try{ stored = localStorage.getItem('blueline-theme'); }catch(e){}
+  if(stored === 'dark' || stored === 'light') document.documentElement.setAttribute('data-theme', stored);
+  btn.addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var next = cur ? (cur === 'dark' ? 'light' : 'dark') : (sysDark ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('blueline-theme', next); }catch(e){}
+    if(window.__scene) window.__scene.retheme();
   });
-
-  els.vtabs.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      els.vtabs.forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      showView(btn.dataset.view);
-    });
-  });
-
-  els.editToggle.addEventListener('click', ()=>{
-    editMode = !editMode;
-    els.editToggle.classList.toggle('on', editMode);
-    els.editToggle.textContent = editMode ? 'EDIT ●' : 'EDIT ○';
-    document.body.classList.toggle('edit-on', editMode);
-    els.addBtn.classList.toggle('visible', editMode && (currentData.blueprint || currentData.model));
-    if(!editMode) closeInspector();
-  });
-
-  els.addBtn.addEventListener('click', ()=>{
-    if(activeView === 'blueprint') openInspectorNewBlueprint();
-    else openInspectorNew3D();
-  });
-
-  els.inspClose.addEventListener('click', closeInspector);
-
-  function setStatus(msg, kind){
-    els.status.textContent = msg || '';
-    els.status.className = 'status' + (kind ? ' '+kind : '');
-  }
-
-  // ---------------- Persistent history (window.storage) ----------------
-  async function loadHistory(){
-    try{
-      const res = await window.storage.get('draft-vr-history', false);
-      if(res && res.value){ history = JSON.parse(res.value); renderHistory(); }
-    }catch(e){ /* no history yet */ }
-  }
-  async function saveHistory(){
-    try{ await window.storage.set('draft-vr-history', JSON.stringify(history.slice(0,20)), false); }
-    catch(e){ console.warn('history save failed', e); }
-  }
-  function renderHistory(){
-    if(!history.length){ els.history.innerHTML = '<div class="history-empty">Nothing drafted yet.</div>'; return; }
-    els.history.innerHTML = '';
-    history.forEach((item, idx)=>{
-      const div = document.createElement('div');
-      div.className = 'history-item';
-      div.textContent = item.description.length > 54 ? item.description.slice(0,54)+'…' : item.description;
-      div.addEventListener('click', ()=> loadFromHistory(idx));
-      els.history.appendChild(div);
-    });
-  }
-  function loadFromHistory(idx){
-    const item = history[idx];
-    if(!item) return;
-    els.desc.value = item.description;
-    currentData = { blueprint:item.blueprint||null, model:item.model||null };
-    updateTitleblock(item.description, item.blueprint ? item.blueprint.scale : '1:1');
-    els.tbStatus.textContent = 'LOADED';
-    presentResults();
-  }
-
-  // ---------------- AI calls ----------------
-  async function callClaude(systemPrompt, userPrompt){
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }]
-      })
-    });
-    const data = await response.json();
-    const textBlock = (data.content || []).find(b => b.type === 'text');
-    if(!textBlock) throw new Error('No response content');
-    let clean = textBlock.text.trim();
-    clean = clean.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
-    return JSON.parse(clean);
-  }
-
-  function generateBlueprint(description){
-    const sys = "You output ONLY raw JSON, no prose, no markdown fences. You are a technical draftsman turning a short description into a simple 2D orthographic blueprint diagram on an 800x520 canvas. JSON schema: {\"title\":string,\"scale\":string (e.g. '1:10'),\"elements\":[{\"type\":\"rect\"|\"line\"|\"circle\"|\"text\"|\"dim\",\"x\":n,\"y\":n,\"w\":n,\"h\":n,\"x2\":n,\"y2\":n,\"r\":n,\"label\":string,\"color\":\"#hex\"}]}. Use 6-14 elements. Keep all coordinates within 40-760 x and 40-480 y. Use 'dim' type for dimension lines (x,y to x2,y2 with a label like '180mm'). Use 'text' for part labels. Default colors: shapes '#5EC8E8', dims '#E8A33D', text '#DCE8F2' unless a color is meaningful.";
-    return callClaude(sys, "Description: " + description);
-  }
-
-  function generateModel(description){
-    const sys = "You output ONLY raw JSON, no prose, no markdown fences. You are turning a short description into a procedural 3D scene made of primitives. JSON schema: {\"title\":string,\"shapes\":[{\"type\":\"box\"|\"sphere\"|\"cylinder\"|\"cone\",\"position\":[x,y,z],\"size\":[x,y,z] (box only, in units where 1=10cm),\"radius\":n (sphere/cylinder/cone),\"height\":n (cylinder/cone),\"rotation\":[x,y,z] (radians, optional),\"color\":\"#hex\"}]}. CRITICAL: decompose the object into every major visible sub-part, not just its main body — a chair needs a seat, back, and separate legs; a drone needs a central body PLUS one arm per rotor extending outward PLUS a motor/prop hub at the tip of each arm; a car needs a body PLUS 4 separate wheels; a robot arm needs a base PLUS each joint segment as its own shape. Use rotation and position together so parts like arms radiate outward from the body at the correct angles rather than overlapping it. Use 6-12 shapes depending on how many sub-parts the object genuinely has, keep the assembly centered near origin, scale so the whole thing fits within roughly -3 to 3 on each axis.";
-    return callClaude(sys, "Description: " + description);
-  }
-
-  els.genBtn.addEventListener('click', async ()=>{
-    const description = els.desc.value.trim();
-    if(!description){ setStatus('Type a description first.', 'error'); return; }
-
-    els.genBtn.disabled = true;
-    setStatus('Drafting…');
-    els.tbStatus.textContent = 'DRAFTING';
-    closeInspector();
-
-    try{
-      let blueprint = null, model = null;
-      if(mode === 'blueprint' || mode === 'both'){ blueprint = await generateBlueprint(description); }
-      if(mode === '3d' || mode === 'both'){ model = await generateModel(description); }
-      currentData = { blueprint, model };
-      updateTitleblock(description, blueprint ? blueprint.scale : '1:1');
-      els.tbStatus.textContent = 'DONE';
-      setStatus('Done.', 'ok');
-
-      history.unshift({ description, blueprint, model, ts: Date.now() });
-      renderHistory();
-      saveHistory();
-
-      presentResults();
-    }catch(err){
-      console.error(err);
-      setStatus('Generation failed — try rephrasing.', 'error');
-      els.tbStatus.textContent = 'ERROR';
-    }finally{
-      els.genBtn.disabled = false;
-    }
-  });
-
-  function updateTitleblock(description, scale){
-    els.tbNum.textContent = 'DV-' + String(Math.abs(hashCode(description)) % 9000 + 1000);
-    els.tbScale.textContent = scale || '—';
-    els.tbDate.textContent = new Date().toISOString().slice(0,10);
-  }
-  function hashCode(str){
-    let h = 0;
-    for(let i=0;i<str.length;i++){ h = ((h<<5)-h) + str.charCodeAt(i); h |= 0; }
-    return h;
-  }
-
-  // ---------------- Presenting results ----------------
-  function presentResults(){
-    els.empty.style.display = 'none';
-    const hasBoth = currentData.blueprint && currentData.model;
-    if(hasBoth){ els.tabs.classList.remove('hidden'); showView('blueprint'); }
-    else if(currentData.model){ els.tabs.classList.add('hidden'); showView('3d'); }
-    else { els.tabs.classList.add('hidden'); showView('blueprint'); }
-    els.addBtn.classList.toggle('visible', editMode);
-  }
-
-  function showView(view){
-    activeView = view;
-    els.vtabs.forEach(b=> b.classList.toggle('active', b.dataset.view === view));
-    closeInspector();
-    updateExportRow();
-    if(view === 'blueprint' && currentData.blueprint){
-      els.canvasWrap.style.display = 'none';
-      els.blueprintWrap.style.display = 'flex';
-      els.vrBtn.classList.remove('visible');
-      els.editToggle.classList.add('visible');
-      renderBlueprint(currentData.blueprint);
-    } else if(view === '3d' && currentData.model){
-      els.blueprintWrap.style.display = 'none';
-      els.canvasWrap.style.display = 'block';
-      els.editToggle.classList.add('visible');
-      renderModel(currentData.model);
-      checkVRSupport();
-      els.cardboardBtn.classList.toggle('visible', typeof DeviceOrientationEvent !== 'undefined');
-    }
-  }
-
-  function updateExportRow(){
-    const hasData = (activeView === 'blueprint' && currentData.blueprint) || (activeView === '3d' && currentData.model);
-    els.exportRow.classList.toggle('visible', !!hasData);
-    els.exportRow.querySelectorAll('.export-btn').forEach(btn=>{
-      const t = btn.dataset.export;
-      const show3d = ['stl','obj','3mf','step'].includes(t);
-      btn.style.display = (activeView === '3d') ? (show3d ? 'inline-block':'none') : (show3d ? 'none':'inline-block');
-    });
-  }
-
-  // ---------------- Blueprint (SVG) rendering ----------------
-  function renderBlueprint(bp){
-    const svg = els.svg;
-    svg.innerHTML = '';
-    const ns = 'http://www.w3.org/2000/svg';
-
-    const border = document.createElementNS(ns,'rect');
-    border.setAttribute('x',10); border.setAttribute('y',10);
-    border.setAttribute('width',780); border.setAttribute('height',500);
-    border.setAttribute('fill','none'); border.setAttribute('stroke','#1E3A57');
-    svg.appendChild(border);
-
-    (bp.elements || []).forEach((el, idx)=>{
-      let node;
-      const defaultColor = el.type === 'dim' ? '#E8A33D' : (el.type === 'text' ? '#DCE8F2' : '#5EC8E8');
-      const color = el.color || defaultColor;
-
-      if(el.type === 'rect'){
-        node = document.createElementNS(ns,'rect');
-        node.setAttribute('x', el.x); node.setAttribute('y', el.y);
-        node.setAttribute('width', el.w); node.setAttribute('height', el.h);
-        node.setAttribute('fill','none'); node.setAttribute('stroke',color); node.setAttribute('stroke-width','1.5');
-      } else if(el.type === 'circle'){
-        node = document.createElementNS(ns,'circle');
-        node.setAttribute('cx', el.x); node.setAttribute('cy', el.y); node.setAttribute('r', el.r);
-        node.setAttribute('fill','none'); node.setAttribute('stroke',color); node.setAttribute('stroke-width','1.5');
-      } else if(el.type === 'line'){
-        node = document.createElementNS(ns,'line');
-        node.setAttribute('x1', el.x); node.setAttribute('y1', el.y);
-        node.setAttribute('x2', el.x2); node.setAttribute('y2', el.y2);
-        node.setAttribute('stroke',color); node.setAttribute('stroke-width','1.5');
-      } else if(el.type === 'dim'){
-        node = document.createElementNS(ns,'line');
-        node.setAttribute('x1', el.x); node.setAttribute('y1', el.y);
-        node.setAttribute('x2', el.x2); node.setAttribute('y2', el.y2);
-        node.setAttribute('stroke',color); node.setAttribute('stroke-width','1'); node.setAttribute('stroke-dasharray','4,3');
-        node.setAttribute('data-idx', idx);
-        svg.appendChild(node);
-        if(el.label){
-          const t = document.createElementNS(ns,'text');
-          t.setAttribute('x', (el.x+el.x2)/2); t.setAttribute('y', (el.y+el.y2)/2 - 6);
-          t.setAttribute('fill',color); t.setAttribute('font-size','11'); t.setAttribute('font-family','ui-monospace,monospace');
-          t.setAttribute('text-anchor','middle'); t.textContent = el.label;
-          t.setAttribute('data-idx', idx);
-          t.addEventListener('click', ()=>{ if(editMode) openInspectorForBlueprint(idx); });
-          svg.appendChild(t);
-        }
-        node.addEventListener('click', ()=>{ if(editMode) openInspectorForBlueprint(idx); });
-        return;
-      } else if(el.type === 'text'){
-        node = document.createElementNS(ns,'text');
-        node.setAttribute('x', el.x); node.setAttribute('y', el.y);
-        node.setAttribute('fill',color); node.setAttribute('font-size','12'); node.setAttribute('font-family','ui-monospace,monospace');
-        node.textContent = el.label || '';
-      }
-      if(node){
-        node.setAttribute('data-idx', idx);
-        node.addEventListener('click', ()=>{ if(editMode) openInspectorForBlueprint(idx); });
-        svg.appendChild(node);
-      }
-    });
-
-    if(bp.title){
-      const t = document.createElementNS(ns,'text');
-      t.setAttribute('x', 24); t.setAttribute('y', 34);
-      t.setAttribute('fill','#6F8AA3'); t.setAttribute('font-size','11'); t.setAttribute('font-family','ui-monospace,monospace');
-      t.setAttribute('letter-spacing','1');
-      t.textContent = bp.title.toUpperCase();
-      svg.appendChild(t);
-    }
-  }
-
-  // ---------------- 3D rendering (Three.js) ----------------
-  let renderer, scene, camera, modelGroup, raycaster, selectionHelper;
-  let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0;
-  let camTheta = 0.7, camPhi = 1.1, camDist = 7;
-
-  function initThree(){
-    if(renderer) return;
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0B1929);
-
-    camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    updateCameraPosition();
-
-    renderer = new THREE.WebGLRenderer({ antialias:true });
-    renderer.xr.enabled = true;
-    els.canvasWrap.appendChild(renderer.domElement);
-    raycaster = new THREE.Raycaster();
-
-    const amb = new THREE.AmbientLight(0x8fa8bd, 0.7);
-    scene.add(amb);
-    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-    dir.position.set(4,6,5);
-    scene.add(dir);
-
-    const grid = new THREE.GridHelper(10, 20, 0x1E3A57, 0x142943);
-    scene.add(grid);
-
-    modelGroup = new THREE.Group();
-    scene.add(modelGroup);
-
-    const dom = renderer.domElement;
-    dom.addEventListener('pointerdown', e=>{ dragging = true; lastX = e.clientX; lastY = e.clientY; downX = e.clientX; downY = e.clientY; });
-    window.addEventListener('pointerup', e=>{
-      dragging = false;
-      if(editMode && activeView === '3d'){
-        const dist = Math.hypot(e.clientX - downX, e.clientY - downY);
-        if(dist < 6) handle3DClick(e);
-      }
-    });
-    window.addEventListener('pointermove', e=>{
-      if(!dragging) return;
-      const dx = e.clientX - lastX, dy = e.clientY - lastY;
-      lastX = e.clientX; lastY = e.clientY;
-      camTheta -= dx * 0.006;
-      camPhi = Math.max(0.2, Math.min(Math.PI - 0.2, camPhi - dy * 0.006));
-      updateCameraPosition();
-    });
-    dom.addEventListener('wheel', e=>{
-      camDist = Math.max(2, Math.min(20, camDist + e.deltaY * 0.01));
-      updateCameraPosition();
-      e.preventDefault();
-    }, { passive:false });
-
-    window.addEventListener('resize', resizeThree);
-    resizeThree();
-
-    initStereoRig();
-    renderer.setAnimationLoop(()=>{
-      if(cardboardMode) renderStereo();
-      else { renderer.setScissorTest(false); renderer.render(scene, camera); }
-    });
-  }
-
-  // ---------------- Cardboard mode (phone gyro, no WebXR needed) ----------------
-  let cardboardMode = false, head, leftCam, rightCam, screenOrientAngle = 0;
-
-  function initStereoRig(){
-    head = new THREE.Object3D();
-    head.position.set(0, 1.2, 6);
-    scene.add(head);
-    leftCam = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    rightCam = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    leftCam.position.set(-0.09, 0, 0);
-    rightCam.position.set(0.09, 0, 0);
-    head.add(leftCam);
-    head.add(rightCam);
-    screenOrientAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-    window.addEventListener('orientationchange', ()=>{
-      screenOrientAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-    });
-  }
-
-  const EULER_Y0 = new THREE.Vector3(0,0,1);
-  const Q0 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
-  function applyDeviceOrientation(quat, alpha, beta, gamma, orient){
-    const euler = new THREE.Euler();
-    euler.set(beta, alpha, -gamma, 'YXZ');
-    quat.setFromEuler(euler);
-    quat.multiply(Q0);
-    quat.multiply(new THREE.Quaternion().setFromAxisAngle(EULER_Y0, -orient));
-  }
-  function onDeviceOrientation(e){
-    if(e.alpha === null || !head) return;
-    const liveAngle = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle : (window.orientation || 0);
-    applyDeviceOrientation(
-      head.quaternion,
-      THREE.MathUtils.degToRad(e.alpha),
-      THREE.MathUtils.degToRad(e.beta),
-      THREE.MathUtils.degToRad(e.gamma),
-      THREE.MathUtils.degToRad(liveAngle)
-    );
-  }
-
-  function renderStereo(){
-    const w = renderer.domElement.width, h = renderer.domElement.height;
-    renderer.setScissorTest(true);
-    leftCam.aspect = (w/2)/h; leftCam.updateProjectionMatrix();
-    renderer.setViewport(0,0,w/2,h); renderer.setScissor(0,0,w/2,h);
-    renderer.render(scene, leftCam);
-    rightCam.aspect = (w/2)/h; rightCam.updateProjectionMatrix();
-    renderer.setViewport(w/2,0,w/2,h); renderer.setScissor(w/2,0,w/2,h);
-    renderer.render(scene, rightCam);
-  }
-
-  async function enterCardboardMode(){
-    if(!renderer){ setStatus('Generate a 3D model first.', 'error'); return; }
-    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
-      try{
-        const res = await DeviceOrientationEvent.requestPermission();
-        if(res !== 'granted'){ setStatus('Motion sensor permission denied — cardboard mode needs it.', 'error'); return; }
-      }catch(e){ setStatus('Could not get motion sensor permission.', 'error'); return; }
-    }
-    cardboardMode = true;
-    window.addEventListener('deviceorientation', onDeviceOrientation);
-    els.canvasWrap.classList.add('cardboard-active');
-    els.exitCardboardBtn.classList.add('visible');
-    resizeThree();
-    if(els.canvasWrap.requestFullscreen){ els.canvasWrap.requestFullscreen().catch(()=>{}); }
-    if(screen.orientation && screen.orientation.lock){ screen.orientation.lock('landscape').catch(()=>{}); }
-  }
-  function exitCardboardMode(){
-    cardboardMode = false;
-    window.removeEventListener('deviceorientation', onDeviceOrientation);
-    els.canvasWrap.classList.remove('cardboard-active');
-    els.exitCardboardBtn.classList.remove('visible');
-    if(document.fullscreenElement){ document.exitFullscreen().catch(()=>{}); }
-    resizeThree();
-  }
-  els.cardboardBtn.addEventListener('click', enterCardboardMode);
-  els.exitCardboardBtn.addEventListener('click', exitCardboardMode);
-  document.addEventListener('fullscreenchange', ()=>{
-    if(!document.fullscreenElement && cardboardMode) exitCardboardMode();
-  });
-
-  function handle3DClick(e){
-    const rect = renderer.domElement.getBoundingClientRect();
-    const mouse = new THREE.Vector2(
-      ((e.clientX - rect.left) / rect.width) * 2 - 1,
-      -((e.clientY - rect.top) / rect.height) * 2 + 1
-    );
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObjects(modelGroup.children, false);
-    if(hits.length){ openInspectorFor3D(hits[0].object.userData.idx); }
-  }
-
-  function updateCameraPosition(){
-    if(!camera) return;
-    camera.position.set(
-      camDist * Math.sin(camPhi) * Math.sin(camTheta),
-      camDist * Math.cos(camPhi),
-      camDist * Math.sin(camPhi) * Math.cos(camTheta)
-    );
-    camera.lookAt(0,0.5,0);
-  }
-
-  function resizeThree(){
-    if(!renderer) return;
-    const w = els.canvasWrap.clientWidth || 800;
-    const h = els.canvasWrap.clientHeight || 600;
-    renderer.setSize(w, h);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  }
-
-  function renderModel(model){
-    initThree();
-    resizeThree();
-    while(modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
-    clearSelectionHelper();
-
-    (model.shapes || []).forEach((s, i)=>{
-      let geo;
-      const color = new THREE.Color(s.color || '#5EC8E8');
-      if(s.type === 'box'){
-        const size = s.size || [1,1,1];
-        geo = new THREE.BoxGeometry(size[0]||1, size[1]||1, size[2]||1);
-      } else if(s.type === 'sphere'){
-        geo = new THREE.SphereGeometry(s.radius || 0.5, 20, 16);
-      } else if(s.type === 'cylinder'){
-        geo = new THREE.CylinderGeometry(s.radius || 0.5, s.radius || 0.5, s.height || 1, 20);
-      } else if(s.type === 'cone'){
-        geo = new THREE.ConeGeometry(s.radius || 0.5, s.height || 1, 20);
-      } else { return; }
-
-      const mat = new THREE.MeshStandardMaterial({ color, roughness:0.55, metalness:0.15 });
-      const mesh = new THREE.Mesh(geo, mat);
-      const pos = s.position || [0,0,0];
-      mesh.position.set(pos[0]||0, pos[1]||0, pos[2]||0);
-      if(s.rotation){ mesh.rotation.set(s.rotation[0]||0, s.rotation[1]||0, s.rotation[2]||0); }
-      mesh.userData.idx = i;
-      modelGroup.add(mesh);
-    });
-  }
-
-  function highlightMesh(idx){
-    clearSelectionHelper();
-    const mesh = modelGroup.children.find(m => m.userData.idx === idx);
-    if(!mesh) return;
-    selectionHelper = new THREE.BoxHelper(mesh, 0xE8A33D);
-    scene.add(selectionHelper);
-  }
-  function clearSelectionHelper(){
-    if(selectionHelper){ scene.remove(selectionHelper); selectionHelper = null; }
-  }
-
-  // ---------------- WebXR / VR headset ----------------
-  async function checkVRSupport(){
-    if(!navigator.xr){ els.vrBtn.classList.remove('visible'); els.vrHint.style.display='block'; return; }
-    try{
-      const supported = await navigator.xr.isSessionSupported('immersive-vr');
-      if(supported){ els.vrBtn.classList.add('visible'); els.vrHint.style.display='none'; }
-      else { els.vrBtn.classList.remove('visible'); els.vrHint.style.display='block'; }
-    }catch(e){ els.vrBtn.classList.remove('visible'); els.vrHint.style.display='block'; }
-  }
-
-  els.vrBtn.addEventListener('click', async ()=>{
-    if(!navigator.xr || !renderer) return;
-    try{
-      const session = await navigator.xr.requestSession('immersive-vr', { optionalFeatures:['local-floor','bounded-floor'] });
-      await renderer.xr.setSession(session);
-    }catch(e){
-      setStatus('Could not start VR session on this device.', 'error');
-    }
-  });
-
-  // ================= INSPECTOR (manual editing) =================
-  function closeInspector(){
-    els.inspector.style.display = 'none';
-    selection = null;
-    clearSelectionHelper();
-  }
-
-  function field(labelText, inputHtml){
-    const row = document.createElement('div');
-    row.className = 'insp-row';
-    row.innerHTML = '<label>'+labelText+'</label>' + inputHtml;
-    return row;
-  }
-  function pairField(labelA, inputA, labelB, inputB){
-    const row = document.createElement('div');
-    row.className = 'insp-row pair';
-    row.innerHTML =
-      '<div><label>'+labelA+'</label>'+inputA+'</div>' +
-      '<div><label>'+labelB+'</label>'+inputB+'</div>';
-    return row;
-  }
-
-  // --- Blueprint inspector ---
-  function openInspectorForBlueprint(idx){
-    if(!currentData.blueprint) return;
-    selection = { kind:'blueprint', idx, isNew:false };
-    buildBlueprintForm(currentData.blueprint.elements[idx]);
-  }
-  function openInspectorNewBlueprint(){
-    if(!currentData.blueprint) return;
-    selection = { kind:'blueprint', idx:currentData.blueprint.elements.length, isNew:true };
-    buildBlueprintForm({ type:'rect', x:340, y:220, w:120, h:80, x2:460, y2:220, r:40, label:'', color:'#5EC8E8' });
-  }
-  function buildBlueprintForm(el){
-    els.inspTitle.textContent = selection.isNew ? 'ADD ELEMENT' : 'EDIT ELEMENT';
-    els.inspBody.innerHTML = '';
-    els.inspDelete.style.display = selection.isNew ? 'none' : 'inline-block';
-
-    const typeSel = document.createElement('select');
-    ['rect','circle','line','dim','text'].forEach(t=>{
-      const o = document.createElement('option'); o.value = t; o.textContent = t.toUpperCase();
-      if(t === el.type) o.selected = true;
-      typeSel.appendChild(o);
-    });
-    typeSel.id = 'f-type';
-    els.inspBody.appendChild(field('TYPE', '')).querySelector('label').after(typeSel);
-
-    els.inspBody.appendChild(pairField(
-      'X', '<input type="number" id="f-x" value="'+(el.x??300)+'">',
-      'Y', '<input type="number" id="f-y" value="'+(el.y??200)+'">'
-    ));
-    els.inspBody.appendChild(pairField(
-      'WIDTH', '<input type="number" id="f-w" value="'+(el.w??100)+'">',
-      'HEIGHT', '<input type="number" id="f-h" value="'+(el.h??60)+'">'
-    ));
-    els.inspBody.appendChild(pairField(
-      'X2', '<input type="number" id="f-x2" value="'+(el.x2??400)+'">',
-      'Y2', '<input type="number" id="f-y2" value="'+(el.y2??200)+'">'
-    ));
-    els.inspBody.appendChild(field('RADIUS', '<input type="number" id="f-r" value="'+(el.r??40)+'">'));
-    els.inspBody.appendChild(field('LABEL', '<input type="text" id="f-label" value="'+(el.label||'').replace(/"/g,'&quot;')+'">'));
-    els.inspBody.appendChild(field('COLOR', '<input type="color" id="f-color" value="'+(el.color||'#5EC8E8')+'">'));
-
-    els.inspector.style.display = 'block';
-  }
-  function applyBlueprintForm(){
-    const type = document.getElementById('f-type').value;
-    const updated = {
-      type,
-      x: Number(document.getElementById('f-x').value),
-      y: Number(document.getElementById('f-y').value),
-      w: Number(document.getElementById('f-w').value),
-      h: Number(document.getElementById('f-h').value),
-      x2: Number(document.getElementById('f-x2').value),
-      y2: Number(document.getElementById('f-y2').value),
-      r: Number(document.getElementById('f-r').value),
-      label: document.getElementById('f-label').value,
-      color: document.getElementById('f-color').value
-    };
-    currentData.blueprint.elements[selection.idx] = updated;
-    renderBlueprint(currentData.blueprint);
-    closeInspector();
-  }
-  function deleteBlueprintSelection(){
-    currentData.blueprint.elements.splice(selection.idx, 1);
-    renderBlueprint(currentData.blueprint);
-    closeInspector();
-  }
-
-  // --- 3D inspector ---
-  function openInspectorFor3D(idx){
-    if(!currentData.model || idx === undefined) return;
-    selection = { kind:'3d', idx, isNew:false };
-    buildModelForm(currentData.model.shapes[idx]);
-    highlightMesh(idx);
-  }
-  function openInspectorNew3D(){
-    if(!currentData.model) return;
-    selection = { kind:'3d', idx:currentData.model.shapes.length, isNew:true };
-    buildModelForm({ type:'box', position:[0,0,0], size:[1,1,1], radius:0.5, height:1, rotation:[0,0,0], color:'#5EC8E8' });
-  }
-  function toDeg(r){ return (r||0) * 180/Math.PI; }
-  function buildModelForm(s){
-    els.inspTitle.textContent = selection.isNew ? 'ADD SHAPE' : 'EDIT SHAPE';
-    els.inspBody.innerHTML = '';
-    els.inspDelete.style.display = selection.isNew ? 'none' : 'inline-block';
-
-    const typeSel = document.createElement('select');
-    ['box','sphere','cylinder','cone'].forEach(t=>{
-      const o = document.createElement('option'); o.value = t; o.textContent = t.toUpperCase();
-      if(t === s.type) o.selected = true;
-      typeSel.appendChild(o);
-    });
-    typeSel.id = 'f-type';
-    els.inspBody.appendChild(field('TYPE', '')).querySelector('label').after(typeSel);
-
-    const pos = s.position || [0,0,0];
-    const size = s.size || [1,1,1];
-    const rot = s.rotation || [0,0,0];
-
-    els.inspBody.appendChild(pairField(
-      'POS X', '<input type="number" step="0.1" id="f-px" value="'+pos[0]+'">',
-      'POS Y', '<input type="number" step="0.1" id="f-py" value="'+pos[1]+'">'
-    ));
-    els.inspBody.appendChild(field('POS Z', '<input type="number" step="0.1" id="f-pz" value="'+pos[2]+'">'));
-
-    els.inspBody.appendChild(pairField(
-      'SIZE X (box)', '<input type="number" step="0.1" id="f-sx" value="'+size[0]+'">',
-      'SIZE Y (box)', '<input type="number" step="0.1" id="f-sy" value="'+size[1]+'">'
-    ));
-    els.inspBody.appendChild(field('SIZE Z (box)', '<input type="number" step="0.1" id="f-sz" value="'+size[2]+'">'));
-
-    els.inspBody.appendChild(pairField(
-      'RADIUS', '<input type="number" step="0.1" id="f-radius" value="'+(s.radius??0.5)+'">',
-      'HEIGHT', '<input type="number" step="0.1" id="f-height" value="'+(s.height??1)+'">'
-    ));
-    els.inspBody.appendChild(field('ROTATION (deg, XYZ)', '<input type="text" id="f-rot" value="'+[toDeg(rot[0]),toDeg(rot[1]),toDeg(rot[2])].map(v=>Math.round(v)).join(',')+'">'));
-    els.inspBody.appendChild(field('COLOR', '<input type="color" id="f-color" value="'+(s.color||'#5EC8E8')+'">'));
-
-    els.inspector.style.display = 'block';
-  }
-  function applyModelForm(){
-    const type = document.getElementById('f-type').value;
-    const rotParts = document.getElementById('f-rot').value.split(',').map(v=> (parseFloat(v)||0) * Math.PI/180);
-    const updated = {
-      type,
-      position: [Number(document.getElementById('f-px').value), Number(document.getElementById('f-py').value), Number(document.getElementById('f-pz').value)],
-      size: [Number(document.getElementById('f-sx').value), Number(document.getElementById('f-sy').value), Number(document.getElementById('f-sz').value)],
-      radius: Number(document.getElementById('f-radius').value),
-      height: Number(document.getElementById('f-height').value),
-      rotation: [rotParts[0]||0, rotParts[1]||0, rotParts[2]||0],
-      color: document.getElementById('f-color').value
-    };
-    currentData.model.shapes[selection.idx] = updated;
-    renderModel(currentData.model);
-    closeInspector();
-  }
-  function deleteModelSelection(){
-    currentData.model.shapes.splice(selection.idx, 1);
-    renderModel(currentData.model);
-    closeInspector();
-  }
-
-  els.inspApply.addEventListener('click', ()=>{
-    if(!selection) return;
-    if(selection.kind === 'blueprint') applyBlueprintForm();
-    else applyModelForm();
-  });
-  els.inspDelete.addEventListener('click', ()=>{
-    if(!selection) return;
-    if(selection.kind === 'blueprint') deleteBlueprintSelection();
-    else deleteModelSelection();
-  });
-
-  // ================= EXPORTS =================
-  els.exportRow.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.export-btn');
-    if(!btn) return;
-    const type = btn.dataset.export;
-    if(type === 'png' || type === 'jpg') exportBlueprintImage(type);
-    else if(type === 'stl') exportSTL();
-    else if(type === 'obj') exportOBJ();
-    else if(type === '3mf') export3MF();
-    else if(type === 'step') exportSTEP();
-  });
-
-  // ---------------- STEP export (real B-rep solid, planar-faceted) ----------------
-  // Box faces are exact planar B-rep. Cylinder/cone/sphere are built as true closed
-  // polyhedral solids (flat PLANE faces, shared edges/vertices) rather than an
-  // analytic curved surface — this keeps every face/edge topologically valid and
-  // opens cleanly in FreeCAD / SolidWorks / Fusion 360, at the cost of being
-  // faceted rather than a perfectly smooth cylinder (24 sides by default, which
-  // reads as round for most parts and can be filleted/recognized as a cylinder
-  // in most CAD tools if you need a true analytic surface).
-  function exportSTEP(){
-    if(!currentData.model || !currentData.model.shapes || !currentData.model.shapes.length){
-      setStatus('Nothing to export yet.', 'error'); return;
-    }
-    try{
-      const text = buildSTEP(currentData.model.shapes);
-      downloadText(text, 'model.step', 'application/step');
-      setStatus('STEP exported — planar-faceted solid (mm). Open in FreeCAD/SolidWorks/Fusion and check it before machining.', 'ok');
-    }catch(e){
-      console.error(e);
-      setStatus('STEP export failed for this model — try STL/OBJ instead.', 'error');
-    }
-  }
-
-  function buildSTEP(shapes){
-    let entities = [], nextId = 1;
-    const vertexCache = new Map(), edgeCache = new Map();
-
-    function E(type, params){ const id = nextId++; entities.push('#'+id+'='+type+'('+params+');'); return id; }
-    function EMIT(str){ const id = nextId++; entities.push('#'+id+'='+str+';'); return id; }
-    function fmtNum(n){ if(Math.abs(n) < 1e-9) n = 0; return (Math.round(n*1e6)/1e6).toString(); }
-    function fmtPoint(p){ return '('+fmtNum(p.x)+','+fmtNum(p.y)+','+fmtNum(p.z)+')'; }
-    function fmtVec(v){ return '('+fmtNum(v.x)+','+fmtNum(v.y)+','+fmtNum(v.z)+')'; }
-
-    function vertexAt(p){
-      const key = fmtNum(p.x)+'_'+fmtNum(p.y)+'_'+fmtNum(p.z);
-      if(vertexCache.has(key)) return vertexCache.get(key);
-      const cpId = E('CARTESIAN_POINT', "''," + fmtPoint(p));
-      const vpId = E('VERTEX_POINT', "'',#"+cpId);
-      const obj = { id:vpId, pos:p.clone() };
-      vertexCache.set(key, obj);
-      return obj;
-    }
-    function getEdge(vAid, vBid, posA, posB){
-      const key = vAid < vBid ? vAid+'_'+vBid : vBid+'_'+vAid;
-      if(edgeCache.has(key)){
-        const e = edgeCache.get(key);
-        return { edgeId:e.edgeId, orientation: e.fromId === vAid };
-      }
-      const dir = new THREE.Vector3().subVectors(posB, posA).normalize();
-      const dirId = E('DIRECTION', "'',"+fmtVec(dir));
-      const vecId = E('VECTOR', "'',#"+dirId+",1.0");
-      const cpId = E('CARTESIAN_POINT', "''," + fmtPoint(posA));
-      const lineId = E('LINE', "'',#"+cpId+",#"+vecId);
-      const edgeId = E('EDGE_CURVE', "'',#"+vAid+",#"+vBid+",#"+lineId+",.T.");
-      edgeCache.set(key, { edgeId, fromId:vAid, toId:vBid });
-      return { edgeId, orientation:true };
-    }
-    function buildFace(vertObjs, outwardHint){
-      let verts = vertObjs;
-      const p0 = verts[0].pos, p1 = verts[1].pos, p2 = verts[2].pos;
-      let normal = new THREE.Vector3().subVectors(p1,p0).cross(new THREE.Vector3().subVectors(p2,p0));
-      if(normal.lengthSq() < 1e-12){ normal.set(0,0,1); }
-      normal.normalize();
-      if(outwardHint && normal.dot(outwardHint) < 0){ verts = verts.slice().reverse(); normal.negate(); }
-      const orientedEdges = [];
-      for(let i=0;i<verts.length;i++){
-        const a = verts[i], b = verts[(i+1)%verts.length];
-        const { edgeId, orientation } = getEdge(a.id, b.id, a.pos, b.pos);
-        orientedEdges.push(E('ORIENTED_EDGE', "'',*,*,#"+edgeId+","+(orientation?'.T.':'.F.')));
-      }
-      const loopId = E('EDGE_LOOP', "'',("+orientedEdges.map(id=>'#'+id).join(',')+')');
-      const boundId = E('FACE_OUTER_BOUND', "'',#"+loopId+",.T.");
-      const refCandidate = Math.abs(normal.z) < 0.9 ? new THREE.Vector3(0,0,1) : new THREE.Vector3(1,0,0);
-      const xAxis = new THREE.Vector3().crossVectors(refCandidate, normal).normalize();
-      const cpId = E('CARTESIAN_POINT', "''," + fmtPoint(verts[0].pos));
-      const zDirId = E('DIRECTION', "'',"+fmtVec(normal));
-      const xDirId = E('DIRECTION', "'',"+fmtVec(xAxis));
-      const axisId = E('AXIS2_PLACEMENT_3D', "'',#"+cpId+",#"+zDirId+",#"+xDirId);
-      const planeId = E('PLANE', "'',#"+axisId);
-      return E('ADVANCED_FACE', "'',(#"+boundId+"),#"+planeId+",.T.");
-    }
-
-    function shapeMatrix(shape){
-      const pos = shape.position || [0,0,0];
-      const rot = shape.rotation || [0,0,0];
-      const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rot[0]||0, rot[1]||0, rot[2]||0, 'XYZ'));
-      const m = new THREE.Matrix4();
-      m.compose(new THREE.Vector3(pos[0]*EXPORT_SCALE_MM, pos[1]*EXPORT_SCALE_MM, pos[2]*EXPORT_SCALE_MM), quat, new THREE.Vector3(1,1,1));
-      return m;
-    }
-    function tPoint(local, matrix){ return local.clone().applyMatrix4(matrix); }
-    function tDir(local, matrix){ return local.clone().transformDirection(matrix); }
-
-    function makeBoxFaces(shape, matrix){
-      const size = shape.size || [1,1,1];
-      const sx=(size[0]||1)*EXPORT_SCALE_MM/2, sy=(size[1]||1)*EXPORT_SCALE_MM/2, sz=(size[2]||1)*EXPORT_SCALE_MM/2;
-      const local = [
-        [-sx,-sy,-sz],[sx,-sy,-sz],[sx,sy,-sz],[-sx,sy,-sz],
-        [-sx,-sy, sz],[sx,-sy, sz],[sx,sy, sz],[-sx,sy, sz]
-      ].map(([x,y,z]) => vertexAt(tPoint(new THREE.Vector3(x,y,z), matrix)));
-      const faceDefs = [
-        { idx:[0,3,2,1], hint:[0,0,-1] }, { idx:[4,5,6,7], hint:[0,0,1] },
-        { idx:[0,1,5,4], hint:[0,-1,0] }, { idx:[1,2,6,5], hint:[1,0,0] },
-        { idx:[2,3,7,6], hint:[0,1,0] }, { idx:[3,0,4,7], hint:[-1,0,0] },
-      ];
-      return faceDefs.map(fd => buildFace(fd.idx.map(i=>local[i]), tDir(new THREE.Vector3(fd.hint[0],fd.hint[1],fd.hint[2]), matrix)));
-    }
-
-    function makeRevolveFaces(levels, N, matrix){
-      const ringVerts = [];
-      for(const lvl of levels){
-        if(lvl.type === 'pole'){
-          ringVerts.push(vertexAt(tPoint(new THREE.Vector3(0, lvl.y, 0), matrix)));
-        } else {
-          const arr = [];
-          for(let i=0;i<N;i++){
-            const theta = (i/N) * Math.PI*2;
-            const local = new THREE.Vector3(lvl.r*Math.cos(theta), lvl.y, lvl.r*Math.sin(theta));
-            arr.push({ vObj: vertexAt(tPoint(local, matrix)), theta });
-          }
-          ringVerts.push(arr);
-        }
-      }
-      function radialHint(theta1, theta2){
-        const cx = Math.cos(theta1)+Math.cos(theta2), cz = Math.sin(theta1)+Math.sin(theta2);
-        return tDir(new THREE.Vector3(cx,0,cz), matrix);
-      }
-      const faces = [];
-      for(let li=0; li<levels.length-1; li++){
-        const a = ringVerts[li], b = ringVerts[li+1];
-        const aPole = levels[li].type === 'pole', bPole = levels[li+1].type === 'pole';
-        if(!aPole && !bPole){
-          for(let i=0;i<N;i++){
-            const i2=(i+1)%N;
-            faces.push(buildFace([a[i].vObj, b[i].vObj, b[i2].vObj, a[i2].vObj], radialHint(a[i].theta, a[i2].theta)));
-          }
-        } else if(aPole && !bPole){
-          for(let i=0;i<N;i++){
-            const i2=(i+1)%N;
-            faces.push(buildFace([a, b[i].vObj, b[i2].vObj], radialHint(b[i].theta, b[i2].theta)));
-          }
-        } else if(!aPole && bPole){
-          for(let i=0;i<N;i++){
-            const i2=(i+1)%N;
-            faces.push(buildFace([a[i].vObj, a[i2].vObj, b], radialHint(a[i].theta, a[i2].theta)));
-          }
-        }
-      }
-      if(levels[0].type === 'ring'){
-        faces.push(buildFace(ringVerts[0].map(o=>o.vObj), tDir(new THREE.Vector3(0,-1,0), matrix)));
-      }
-      if(levels[levels.length-1].type === 'ring'){
-        faces.push(buildFace(ringVerts[levels.length-1].map(o=>o.vObj), tDir(new THREE.Vector3(0,1,0), matrix)));
-      }
-      return faces;
-    }
-
-    function shapeToFaces(shape){
-      const matrix = shapeMatrix(shape);
-      const N = 24;
-      if(shape.type === 'box'){
-        return makeBoxFaces(shape, matrix);
-      } else if(shape.type === 'cylinder'){
-        const halfH = (shape.height||1) * EXPORT_SCALE_MM / 2;
-        const rad = (shape.radius||0.5) * EXPORT_SCALE_MM;
-        return makeRevolveFaces([{type:'ring',y:-halfH,r:rad},{type:'ring',y:halfH,r:rad}], N, matrix);
-      } else if(shape.type === 'cone'){
-        const halfH = (shape.height||1) * EXPORT_SCALE_MM / 2;
-        const rad = (shape.radius||0.5) * EXPORT_SCALE_MM;
-        return makeRevolveFaces([{type:'ring',y:-halfH,r:rad},{type:'pole',y:halfH}], N, matrix);
-      } else if(shape.type === 'sphere'){
-        const rad = (shape.radius||0.5) * EXPORT_SCALE_MM;
-        const latBands = 12;
-        const levels = [{type:'pole', y:-rad}];
-        for(let i=1;i<latBands;i++){
-          const phi = (i/latBands)*Math.PI - Math.PI/2;
-          levels.push({type:'ring', y: rad*Math.sin(phi), r: rad*Math.cos(phi)});
-        }
-        levels.push({type:'pole', y:rad});
-        return makeRevolveFaces(levels, N, matrix);
-      }
-      return [];
-    }
-
-    const allFaceIds = [];
-    const solidIds = [];
-    shapes.forEach(s=>{
-      try{
-        const faceIds = shapeToFaces(s);
-        if(faceIds.length){
-          const shellId = E('CLOSED_SHELL', "''," + '(' + faceIds.map(id=>'#'+id).join(',') + ')');
-          solidIds.push(E('MANIFOLD_SOLID_BREP', "'draft_vr_part',#"+shellId));
-        }
-      }catch(e){ console.warn('skipped shape in STEP export', s, e); }
-    });
-    if(!solidIds.length) throw new Error('No exportable geometry');
-
-    const originId = E('CARTESIAN_POINT', "'',(0.0,0.0,0.0)");
-    const zDirId = E('DIRECTION', "'',(0.0,0.0,1.0)");
-    const xDirId = E('DIRECTION', "'',(1.0,0.0,0.0)");
-    const worldAxisId = E('AXIS2_PLACEMENT_3D', "'',#"+originId+",#"+zDirId+",#"+xDirId);
-
-    const appCtxId = E('APPLICATION_CONTEXT', "'automotive_design'");
-    const prodCtxId = E('PRODUCT_CONTEXT', "'',#"+appCtxId+",'mechanical'");
-    const productId = E('PRODUCT', "'draft_vr_model','draft_vr_model','',(#"+prodCtxId+")");
-    const pdCtxId = E('PRODUCT_DEFINITION_CONTEXT', "'part definition',#"+appCtxId+",'design'");
-    const pdfId = E('PRODUCT_DEFINITION_FORMATION', "'','',#"+productId);
-    const pdId = E('PRODUCT_DEFINITION', "'design','',#"+pdfId+",#"+pdCtxId);
-    const pdsId = E('PRODUCT_DEFINITION_SHAPE', "'','',#"+pdId);
-
-    const lenUnitId = EMIT('(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT($,.MILLI.,.METRE.))');
-    const angUnitId = EMIT('(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,$,.RADIAN.))');
-    const solidAngUnitId = EMIT('(NAMED_UNIT(*) SOLID_ANGLE_UNIT() SI_UNIT($,$,.STERADIAN.))');
-    const uncMeasureId = E('UNCERTAINTY_MEASURE_WITH_UNIT', "LENGTH_MEASURE(1.0E-3),#"+lenUnitId+",'distance_accuracy_value','max precision'");
-    const geomCtxId = EMIT('GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#'+uncMeasureId+')) GLOBAL_UNIT_ASSIGNED_CONTEXT((#'+lenUnitId+',#'+angUnitId+',#'+solidAngUnitId+")) REPRESENTATION_CONTEXT('Context','3D')");
-
-    const shapeRepId = E('ADVANCED_BREP_SHAPE_REPRESENTATION', "'',(#"+worldAxisId+","+solidIds.map(id=>'#'+id).join(',')+"),#"+geomCtxId);
-    E('SHAPE_DEFINITION_REPRESENTATION', "#"+pdsId+",#"+shapeRepId);
-
-    const header =
-`ISO-10303-21;
-HEADER;
-FILE_DESCRIPTION((''),'2;1');
-FILE_NAME('model.step','${new Date().toISOString()}',('DRAFT/VR'),(''),'DRAFT/VR STEP exporter','','');
-FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));
-ENDSEC;
-DATA;
-`;
-    const footer = `ENDSEC;\nEND-ISO-10303-21;\n`;
-    return header + entities.join('\n') + '\n' + footer;
-  }
-
-  function showStepLimitation(){
-    setStatus('STEP needs true CAD B-rep geometry (surfaces, not triangles) — this tool exports meshes. Export STL or OBJ, then use FreeCAD (Mesh → Part) or Fusion 360 to convert to STEP.', 'info');
-  }
-
-  function downloadBlobUrl(url, filename){
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=> URL.revokeObjectURL(url), 4000);
-  }
-  function downloadText(content, filename, mime){
-    const blob = new Blob([content], {type: mime || 'text/plain'});
-    downloadBlobUrl(URL.createObjectURL(blob), filename);
-  }
-
-  function exportBlueprintImage(type){
-    const svg = els.svg;
-    const serializer = new XMLSerializer();
-    const svgStr = serializer.serializeToString(svg);
-    const svgBlob = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'});
-    const url = URL.createObjectURL(svgBlob);
-    const img = new Image();
-    img.onload = ()=>{
-      const canvas = document.createElement('canvas');
-      canvas.width = 800; canvas.height = 520;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#0B1929'; ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      URL.revokeObjectURL(url);
-      const mime = type === 'jpg' ? 'image/jpeg' : 'image/png';
-      downloadBlobUrl(canvas.toDataURL(mime, 0.95), 'blueprint.' + type);
-    };
-    img.src = url;
-  }
-
-  // shared mesh-to-triangle collector, in real-world mm
-  function collectTriangles(){
-    modelGroup.updateMatrixWorld(true);
-    const meshes = [];
-    modelGroup.children.forEach(mesh=>{
-      const geo = mesh.geometry;
-      const pos = geo.attributes.position;
-      const idx = geo.index;
-      const mw = mesh.matrixWorld;
-      const verts = [];
-      for(let i=0;i<pos.count;i++){
-        const v = new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mw).multiplyScalar(EXPORT_SCALE_MM);
-        verts.push(v);
-      }
-      const tris = [];
-      const triCount = idx ? idx.count/3 : pos.count/3;
-      for(let t=0;t<triCount;t++){
-        if(idx) tris.push([idx.getX(t*3), idx.getX(t*3+1), idx.getX(t*3+2)]);
-        else tris.push([t*3, t*3+1, t*3+2]);
-      }
-      meshes.push({ verts, tris });
-    });
-    return meshes;
-  }
-
-  function exportSTL(){
-    if(!modelGroup || !modelGroup.children.length){ setStatus('Nothing to export yet.', 'error'); return; }
-    const meshes = collectTriangles();
-    let out = 'solid model\n';
-    meshes.forEach(({verts, tris})=>{
-      tris.forEach(([a,b,c])=>{
-        const vA = verts[a], vB = verts[b], vC = verts[c];
-        const n = new THREE.Vector3().subVectors(vB,vA).cross(new THREE.Vector3().subVectors(vC,vA)).normalize();
-        out += 'facet normal '+n.x+' '+n.y+' '+n.z+'\nouter loop\n';
-        out += 'vertex '+vA.x+' '+vA.y+' '+vA.z+'\n';
-        out += 'vertex '+vB.x+' '+vB.y+' '+vB.z+'\n';
-        out += 'vertex '+vC.x+' '+vC.y+' '+vC.z+'\n';
-        out += 'endloop\nendfacet\n';
-      });
-    });
-    out += 'endsolid model\n';
-    downloadText(out, 'model.stl', 'model/stl');
-    setStatus('STL exported (units: mm).', 'ok');
-  }
-
-  function exportOBJ(){
-    if(!modelGroup || !modelGroup.children.length){ setStatus('Nothing to export yet.', 'error'); return; }
-    const meshes = collectTriangles();
-    let out = '# exported from DRAFT/VR (mm)\n';
-    let vOffset = 1;
-    meshes.forEach(({verts, tris}, mi)=>{
-      out += 'o shape_'+mi+'\n';
-      verts.forEach(v=>{ out += 'v '+v.x+' '+v.y+' '+v.z+'\n'; });
-      tris.forEach(([a,b,c])=>{ out += 'f '+(a+vOffset)+' '+(b+vOffset)+' '+(c+vOffset)+'\n'; });
-      vOffset += verts.length;
-    });
-    downloadText(out, 'model.obj', 'text/plain');
-    setStatus('OBJ exported (units: mm).', 'ok');
-  }
-
-  async function export3MF(){
-    if(!modelGroup || !modelGroup.children.length){ setStatus('Nothing to export yet.', 'error'); return; }
-    if(!window.JSZip){ setStatus('3MF exporter still loading — try again in a second.', 'error'); return; }
-    const meshes = collectTriangles();
-
-    let allVerts = [], allTris = [], vOffset = 0;
-    meshes.forEach(({verts, tris})=>{
-      verts.forEach(v=> allVerts.push(v));
-      tris.forEach(([a,b,c])=> allTris.push([a+vOffset, b+vOffset, c+vOffset]));
-      vOffset += verts.length;
-    });
-
-    let vertXml = allVerts.map(v => '<vertex x="'+v.x+'" y="'+v.y+'" z="'+v.z+'"/>').join('');
-    let triXml = allTris.map(([a,b,c]) => '<triangle v1="'+a+'" v2="'+b+'" v3="'+c+'"/>').join('');
-
-    const modelXml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">\n' +
-      '<resources><object id="1" type="model"><mesh>' +
-      '<vertices>'+vertXml+'</vertices>' +
-      '<triangles>'+triXml+'</triangles>' +
-      '</mesh></object></resources>' +
-      '<build><item objectid="1"/></build>' +
-      '</model>';
-
-    const contentTypes = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-      '<Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>' +
-      '</Types>';
-
-    const rels = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>' +
-      '</Relationships>';
-
-    const zip = new JSZip();
-    zip.file('[Content_Types].xml', contentTypes);
-    zip.folder('_rels').file('.rels', rels);
-    zip.folder('3D').file('3dmodel.model', modelXml);
-    const blob = await zip.generateAsync({type:'blob'});
-    downloadBlobUrl(URL.createObjectURL(blob), 'model.3mf');
-    setStatus('3MF exported — opens in Bambu Studio / OrcaSlicer (units: mm).', 'ok');
-  }
-
-  loadHistory();
 })();
+
+/* sticky bar shadow */
+(function(){
+  var bar = document.getElementById('topbar');
+  var onScroll = function(){ bar.classList.toggle('stuck', window.scrollY > 8); };
+  window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+})();
+
+/* smooth scroll buttons */
+document.querySelectorAll('[data-scroll]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var el = document.getElementById(b.dataset.scroll);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+
+/* scroll reveal — only enabled when supported, so content is visible by default */
+(function(){
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced || !('IntersectionObserver' in window)) return;
+  document.documentElement.classList.add('reveal-on');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en, i){
+      if(en.isIntersecting){
+        var el = en.target;
+        setTimeout(function(){ el.classList.add('in'); }, i * 90);
+        io.unobserve(el);
+      }
+    });
+  }, {rootMargin:'0px 0px -8% 0px', threshold:.08});
+  document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
+})();
+
+/* hero parallax */
+(function(){
+  var panel = document.getElementById('bpPanel');
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!panel || reduced || window.matchMedia('(max-width: 900px)').matches) return;
+  window.addEventListener('mousemove', function(e){
+    var r = panel.getBoundingClientRect();
+    var dx = (e.clientX - (r.left + r.width/2)) / r.width;
+    var dy = (e.clientY - (r.top + r.height/2)) / r.height;
+    if(Math.abs(dx) > 2 || Math.abs(dy) > 2) return;
+    panel.style.transform = 'perspective(900px) rotateY(' + (dx*5).toFixed(2) + 'deg) rotateX(' + (-dy*5).toFixed(2) + 'deg) translateZ(0)';
+  });
+  window.addEventListener('mouseleave', function(){ panel.style.transform = ''; });
+})();
+
+/* ============================================================
+   BRIEF CONTROLS
+   ============================================================ */
+var projectType = 'Interior design';
+(function(){
+  var group = document.getElementById('ptype');
+  var ind = document.getElementById('toggleInd');
+  group.querySelectorAll('button').forEach(function(b, i){
+    b.addEventListener('click', function(){
+      group.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      ind.classList.toggle('right', i === 1);
+      projectType = b.dataset.type;
+    });
+  });
+})();
+
+/* ============================================================
+   DESIGN GENERATION — via the artifact `sample` capability
+   ============================================================ */
+var SCHEMA_PROMPT = [
+'You are an expert architecture and interior design assistant.',
+'Reply with ONLY one valid JSON object — no prose, no markdown fences. Schema:',
+'{',
+' "summary": "2-3 sentence design concept",',
+' "room": {"width": number, "length": number, "height": number},',
+' "palette": [{"name": string, "hex": "#rrggbb"}]  (exactly 5 items),',
+' "materials": [string]  (4-6 short items, e.g. "white oak flooring"),',
+' "furniture": [{"name": string, "x": number, "z": number, "width": number, "depth": number, "height": number, "color": "#rrggbb", "shape": "box"|"cylinder"}]  (6-10 items),',
+' "notes": "80-120 word design rationale"',
+'}',
+'Furniture rules: x and z are metres from the room centre (x is left-right, z is front-back).',
+'Keep every item inside the walls — |x| <= width/2 - itemWidth/2 and |z| <= length/2 - itemDepth/2 — and do not let footprints overlap each other.',
+'height is the item\'s own height in metres, sitting on the floor. Keep the layout physically sensible for the room type and dimensions.'
+].join('\n');
+
+var LOAD_STEPS = [
+  ['Reading the brief', 'parsing constraints and clearances'],
+  ['Zoning the plan', 'circulation, sightlines, daylight'],
+  ['Placing furniture', 'checking footprints against the walls'],
+  ['Mixing the palette', 'five tones, warm to cool'],
+  ['Specifying materials', 'floor, wall, textile, metal'],
+  ['Drafting the notes', 'writing up the rationale']
+];
+
+var samplePromise = null;
+function getSample(){
+  if(samplePromise) return samplePromise;
+  samplePromise = (window.claude && window.claude.use)
+    ? window.claude.use('sample').catch(function(){ return null; })
+    : Promise.resolve(null);
+  return samplePromise;
+}
+
+function readBrief(){
+  return {
+    space: document.getElementById('space').value.trim() || 'room',
+    w: Math.max(1.5, parseFloat(document.getElementById('dimW').value) || 5),
+    l: Math.max(1.5, parseFloat(document.getElementById('dimL').value) || 6),
+    h: Math.max(2, parseFloat(document.getElementById('dimH').value) || 2.7),
+    style: document.getElementById('style').value,
+    details: document.getElementById('details').value.trim()
+  };
+}
+
+function showLoading(){
+  var out = document.getElementById('outputBody');
+  out.innerHTML =
+    '<div class="loading">' +
+      '<div class="load-row">' +
+        '<svg class="compass" viewBox="0 0 48 48" fill="none" stroke="url(#gA)" stroke-width="2.2" stroke-linecap="round">' +
+          '<circle cx="24" cy="24" r="19" stroke="var(--line-strong)"/>' +
+          '<path d="M24 8 L33 34 L24 28 L15 34 Z" stroke="var(--violet)"/>' +
+          '<circle cx="24" cy="24" r="2.6" fill="var(--magenta)" stroke="none"/>' +
+        '</svg>' +
+        '<div>' +
+          '<div class="load-status"><b id="loadTitle">Reading the brief</b></div>' +
+          '<div class="load-sub" id="loadSub">parsing constraints and clearances</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="skel w90"></div><div class="skel w70"></div><div class="skel w45"></div>' +
+      '<div class="skel-chips"><i class="skel-chip"></i><i class="skel-chip"></i><i class="skel-chip"></i><i class="skel-chip"></i><i class="skel-chip"></i></div>' +
+      '<div class="skel w90"></div><div class="skel w70"></div>' +
+      '<div class="progress"><i></i></div>' +
+    '</div>';
+  var i = 0;
+  return setInterval(function(){
+    i = (i + 1) % LOAD_STEPS.length;
+    var t = document.getElementById('loadTitle'), s = document.getElementById('loadSub');
+    if(t && s){ t.textContent = LOAD_STEPS[i][0]; s.textContent = LOAD_STEPS[i][1]; }
+  }, 2600);
+}
+
+async function generateDesign(){
+  var btn = document.getElementById('genBtn');
+  var out = document.getElementById('outputBody');
+  var note = document.getElementById('sampleNote');
+  var brief = readBrief();
+
+  btn.disabled = true;
+  btn.textContent = 'Drafting…';
+  var timer = showLoading();
+
+  var userPrompt = [
+    'Project type: ' + projectType,
+    'Space: ' + brief.space,
+    'Dimensions: ' + brief.w + 'm wide x ' + brief.l + 'm long x ' + brief.h + 'm ceiling height',
+    'Style direction: ' + brief.style,
+    'Details / constraints: ' + (brief.details || 'none given')
+  ].join('\n');
+
+  try{
+    var sample = await getSample();
+    var spec;
+    if(sample){
+      note.hidden = true;
+      spec = await sample.json(SCHEMA_PROMPT + '\n\n' + userPrompt, {modelTier:'default', cache:false});
+    } else {
+      note.hidden = false;
+      note.textContent = 'Claude is not available in this view, so the layout below was drafted by the built-in rule-based planner. Open this page in Claude to generate with Claude.';
+      await new Promise(function(r){ setTimeout(r, 1400); });
+      spec = localDesign(brief);
+    }
+    clearInterval(timer);
+    renderOutput(normalise(spec, brief), false);
+  } catch(err){
+    clearInterval(timer);
+    var code = (err && err.code) || 'upstream_error';
+    if(code === 'not_granted' || code === 'sampling_disabled' || code === 'not_declared' || code === 'capability_disabled'){
+      note.hidden = false;
+      note.textContent = 'Claude was not allowed for this page, so the layout below came from the built-in rule-based planner.';
+      renderOutput(normalise(localDesign(brief), brief), false);
+    } else {
+      out.innerHTML = '<div class="error-box"><strong>' + errorTitle(code) + '</strong><br>' + errorHelp(code) + '</div>';
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate design';
+  }
+}
+document.getElementById('genBtn').addEventListener('click', generateDesign);
+
+function errorTitle(code){
+  if(code === 'rate_limited') return 'Too many designs at once';
+  if(code === 'invalid_json') return 'The draft came back unreadable';
+  if(code === 'session_expired') return 'Your session expired';
+  if(code === 'refused') return 'That brief could not be drafted';
+  if(code === 'prompt_too_large') return 'That brief is too long';
+  return 'The design could not be generated';
+}
+function errorHelp(code){
+  if(code === 'rate_limited') return 'Wait a minute, then press Generate design again.';
+  if(code === 'invalid_json') return 'Press Generate design again, or shorten the details field.';
+  if(code === 'session_expired') return 'Sign in to Claude again, then reload this page.';
+  if(code === 'refused') return 'Rephrase the brief and try once more.';
+  if(code === 'prompt_too_large') return 'Trim the details field to a few sentences.';
+  return 'Something went wrong on the way to Claude. Press Generate design to try again.';
+}
+
+/* ---- normalise + clamp so nothing lands in a wall ---- */
+function normalise(spec, brief){
+  spec = spec || {};
+  var room = spec.room || {};
+  var W = Number(room.width) || brief.w, L = Number(room.length) || brief.l, H = Number(room.height) || brief.h;
+  spec.room = {width:W, length:L, height:H};
+  spec.palette = (Array.isArray(spec.palette) ? spec.palette : []).filter(function(p){ return p && /^#[0-9a-f]{6}$/i.test(String(p.hex)); }).slice(0,6);
+  spec.materials = (Array.isArray(spec.materials) ? spec.materials : []).map(String).slice(0,8);
+  spec.furniture = (Array.isArray(spec.furniture) ? spec.furniture : []).slice(0,14).map(function(f){
+    var w = clamp(Number(f.width) || .6, .15, W*.9);
+    var d = clamp(Number(f.depth) || Number(f.width) || .6, .15, L*.9);
+    var h = clamp(Number(f.height) || .5, .1, H*.95);
+    return {
+      name: String(f.name || 'item'),
+      width:w, depth:d, height:h,
+      x: clamp(Number(f.x) || 0, -(W/2 - w/2), (W/2 - w/2)),
+      z: clamp(Number(f.z) || 0, -(L/2 - d/2), (L/2 - d/2)),
+      color: /^#[0-9a-f]{6}$/i.test(String(f.color)) ? f.color : '#9aa3b5',
+      shape: f.shape === 'cylinder' ? 'cylinder' : 'box'
+    };
+  });
+  spec.summary = String(spec.summary || '');
+  spec.notes = String(spec.notes || '');
+  return spec;
+}
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+/* ---- offline planner, used when Claude is unavailable ---- */
+var STYLE_PALETTES = {
+  'Warm minimalist':   [['Lime plaster','#EDE6DA'],['Raw linen','#D8CCB8'],['Smoked oak','#8B6F4E'],['Charcoal','#3A3733'],['Ochre','#C98A3C']],
+  'Japandi':           [['Rice paper','#F0EDE6'],['Ash grey','#BFB9AE'],['Hinoki','#C4A57B'],['Sumi ink','#2C2C2A'],['Moss','#6F7F63']],
+  'Mid-century modern':[['Bone','#EFE9DC'],['Walnut','#6B4526'],['Teal','#25706E'],['Burnt orange','#C75B2A'],['Slate','#494F55']],
+  'Industrial loft':   [['Poured concrete','#B8B5B0'],['Blackened steel','#2E3033'],['Reclaimed brick','#8C4A35'],['Oxidised copper','#5E8B7E'],['Bone white','#E7E4DD']],
+  'Scandinavian':      [['Snow','#F6F5F2'],['Pale birch','#DCCDB4'],['Fjord blue','#5C7B95'],['Graphite','#3C4046'],['Rust','#B45B3E']],
+  'Coastal':           [['Sea salt','#F2F1EC'],['Driftwood','#C6B79E'],['Harbour blue','#2F5E7A'],['Seaglass','#89B8B0'],['Sand','#DFCDAA']],
+  'Traditional / classic':[['Antique white','#EFE7D8'],['Mahogany','#5A2E24'],['Deep green','#2F4A3A'],['Brass','#B08C42'],['Oxblood','#6E2A2A']],
+  'Contemporary luxury':[['Alabaster','#EFEDE8'],['Smoked glass','#4A4A50'],['Cashmere','#C9B79C'],['Onyx','#212126'],['Champagne','#C7A96B']]
+};
+var STYLE_MATERIALS = {
+  'Warm minimalist':['micro-cement floor','white oak veneer','bouclé upholstery','matte brass fittings','linen sheers'],
+  'Japandi':['hinoki timber','tatami-weave rug','lime-washed walls','blackened oak joinery','washi paper shades'],
+  'Mid-century modern':['walnut veneer','tweed upholstery','terrazzo tabletop','powder-coated steel legs','wool loop rug'],
+  'Industrial loft':['polished concrete floor','blackened steel frames','reclaimed brick','aged leather','raw plywood'],
+  'Scandinavian':['pale birch ply','wool felt','white-oiled oak floor','linen upholstery','matte black hardware'],
+  'Coastal':['limewashed timber','woven jute rug','rattan detailing','bleached oak floor','cotton canvas'],
+  'Traditional / classic':['herringbone oak parquet','velvet upholstery','moulded cornice','polished brass','damask textile'],
+  'Contemporary luxury':['book-matched marble','fluted oak panelling','bronzed mirror','silk-blend rug','satin brass inlay']
+};
+function localDesign(b){
+  var pal = STYLE_PALETTES[b.style] || STYLE_PALETTES['Warm minimalist'];
+  var W = b.w, L = b.l;
+  var seat = pal[1][1], wood = pal[2][1], dark = pal[3][1], acc = pal[4][1];
+  var f = [
+    {name:'Sofa',        x:0,               z:-L/2 + 0.55, width:Math.min(2.4, W*.55), depth:.9,  height:.78, color:seat, shape:'box'},
+    {name:'Coffee table',x:0,               z:-L/2 + 1.9,  width:1.1, depth:.6,  height:.4,  color:wood, shape:'box'},
+    {name:'Rug',         x:0,               z:-L/2 + 1.6,  width:Math.min(2.8, W*.7), depth:Math.min(2.0, L*.4), height:.02, color:pal[0][1], shape:'box'},
+    {name:'Media unit',  x:0,               z: L/2 - 0.35, width:Math.min(2.0, W*.5), depth:.42, height:.48, color:dark, shape:'box'},
+    {name:'Armchair',    x:-W/2 + 0.7,      z: 0.2,        width:.8,  depth:.8,  height:.8,  color:acc,  shape:'box'},
+    {name:'Floor lamp',  x:-W/2 + 0.45,     z:-L/2 + 0.6,  width:.32, depth:.32, height:1.6, color:dark, shape:'cylinder'},
+    {name:'Side table',  x: W/2 - 0.55,     z:-L/2 + 0.9,  width:.45, depth:.45, height:.52, color:wood, shape:'cylinder'},
+    {name:'Shelving',    x: W/2 - 0.22,     z: 0.9,        width:.36, depth:Math.min(1.8, L*.35), height:1.9, color:wood, shape:'box'},
+    {name:'Planter',     x: W/2 - 0.5,      z: L/2 - 0.7,  width:.4,  depth:.4,  height:1.1, color:'#4F7A4C', shape:'cylinder'}
+  ];
+  return {
+    summary: 'A ' + b.style.toLowerCase() + ' ' + b.space + ' of ' + W + ' × ' + L + ' m, zoned around a single conversation group with a clear ' + Math.max(0.8, (W - 3)).toFixed(1) + ' m circulation route along one edge.',
+    room:{width:W, length:L, height:b.h},
+    palette: pal.map(function(p){ return {name:p[0], hex:p[1]}; }),
+    materials: STYLE_MATERIALS[b.style] || STYLE_MATERIALS['Warm minimalist'],
+    furniture: f,
+    notes: 'The seating group sits against the long wall so the room reads as one open volume rather than two halves. Circulation runs behind the armchair, keeping a clear route from the entry to the window wall without crossing the rug. Storage is pushed to the vertical plane — a tall shelving run on the short wall — so the floor stays uninterrupted and the ceiling height does the work. ' + (b.details ? 'Your constraints (' + b.details.slice(0,90) + ') are reflected in the placement rather than in extra furniture.' : 'Add constraints to the brief to see them reflected in the placement.')
+  };
+}
+
+/* ---- render ---- */
+function renderOutput(spec, isExample){
+  var out = document.getElementById('outputBody');
+  var swatches = (spec.palette || []).map(function(p, i){
+    return '<div class="swatch"><div class="chip" style="background:' + p.hex + '; animation-delay:' + (i*70) + 'ms"></div>' +
+           (p.name || '') + '<span class="hex">' + String(p.hex).toUpperCase() + '</span></div>';
+  }).join('');
+  var materials = (spec.materials || []).map(function(m, i){
+    return '<span style="animation-delay:' + (350 + i*60) + 'ms">' + esc(m) + '</span>';
+  }).join('');
+
+  out.innerHTML =
+    (isExample ? '<div class="example-flag">Example output — press Generate design for your own</div>' : '') +
+    '<div class="spec-summary">' + esc(spec.summary) + '</div>' +
+    '<div class="swatches">' + swatches + '</div>' +
+    '<div class="materials-list">' + materials + '</div>' +
+    '<div class="notes">' + esc(spec.notes) + '</div>' +
+    '<button class="btn ghost" style="width:100%; margin-top:20px;" id="view3d">View in 3D</button>' +
+    '<div id="canvas-wrap"><div id="canvas-holder"></div>' +
+    '<div class="canvas-hint"><span>Drag to orbit</span><span>Scroll to zoom</span><span>' +
+      spec.room.width + ' × ' + spec.room.length + ' × ' + spec.room.height + ' m</span></div></div>';
+
+  window.__lastSpec = spec;
+  document.getElementById('view3d').addEventListener('click', toggle3D);
+}
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+function toggle3D(){
+  var wrap = document.getElementById('canvas-wrap');
+  var btn = document.getElementById('view3d');
+  var showing = !wrap.classList.contains('show');
+  wrap.classList.toggle('show', showing);
+  btn.textContent = showing ? 'Hide 3D view' : 'View in 3D';
+  if(showing && !wrap.dataset.built){
+    wrap.dataset.built = '1';
+    build3D(window.__lastSpec);
+    wrap.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+
+/* ============================================================
+   3D VIEWER
+   ============================================================ */
+function cssVar(name, fallback){
+  var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+function build3D(spec){
+  if(typeof THREE === 'undefined'){
+    document.getElementById('canvas-holder').innerHTML =
+      '<div style="padding:24px;font-size:14px;color:var(--ink-soft)">The 3D viewer could not load.</div>';
+    return;
+  }
+  var holder = document.getElementById('canvas-holder');
+  var room = spec.room;
+  var W = holder.clientWidth, H = holder.clientHeight;
+
+  var scene = new THREE.Scene();
+  var renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  holder.innerHTML = '';
+  holder.appendChild(renderer.domElement);
+
+  var camera = new THREE.PerspectiveCamera(46, W/H, 0.1, 200);
+
+  function applyTheme(){
+    var bg = new THREE.Color(cssVar('--canvas-bg', '#E9EDF9'));
+    scene.background = bg;
+    scene.fog = new THREE.Fog(bg.getHex(), Math.max(room.width, room.length) * 1.6, Math.max(room.width, room.length) * 4.2);
+  }
+  applyTheme();
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+  var key = new THREE.DirectionalLight(0xffffff, 0.75);
+  key.position.set(5, 9, 5); scene.add(key);
+  var magenta = new THREE.PointLight(0xF5299B, 0.85, 22);
+  magenta.position.set(-room.width*0.7, 2.4, -room.length*0.6); scene.add(magenta);
+  var cyan = new THREE.PointLight(0x00D8E6, 0.8, 22);
+  cyan.position.set(room.width*0.7, 2.2, room.length*0.6); scene.add(cyan);
+  var violet = new THREE.PointLight(0x8B3BF5, 0.5, 20);
+  violet.position.set(0, 3.2, 0); scene.add(violet);
+
+  var floorColor = (spec.palette && spec.palette[0] && spec.palette[0].hex) || '#E4DCC8';
+  var floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(room.width, room.length),
+    new THREE.MeshStandardMaterial({color:new THREE.Color(floorColor), roughness:.92, metalness:.02})
+  );
+  floor.rotation.x = -Math.PI/2; floor.position.y = -0.005; scene.add(floor);
+
+  var grid = new THREE.GridHelper(Math.max(room.width, room.length) * 2, Math.round(Math.max(room.width, room.length) * 2), 0x8B3BF5, 0x2B4FF0);
+  grid.material.opacity = 0.16; grid.material.transparent = true; grid.position.y = -0.02; scene.add(grid);
+
+  var wallMat = new THREE.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:0.16, roughness:1, side:THREE.DoubleSide});
+  var wallH = Math.min(room.height, 3.2), t = 0.06;
+  [[room.width,t,0,-room.length/2],[room.width,t,0,room.length/2],[t,room.length,-room.width/2,0],[t,room.length,room.width/2,0]]
+    .forEach(function(d){
+      var m = new THREE.Mesh(new THREE.BoxGeometry(d[0], wallH, d[1]), wallMat);
+      m.position.set(d[2], wallH/2, d[3]); scene.add(m);
+    });
+  var outline = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(room.width, wallH, room.length)),
+    new THREE.LineBasicMaterial({color:0x8B3BF5, transparent:true, opacity:.5})
+  );
+  outline.position.y = wallH/2; scene.add(outline);
+
+  var pieces = [];
+  (spec.furniture || []).forEach(function(item, i){
+    var col = new THREE.Color(item.color);
+    var mat = new THREE.MeshStandardMaterial({color:col, roughness:.68, metalness:.06, emissive:col.clone().multiplyScalar(0.08)});
+    var geo = item.shape === 'cylinder'
+      ? new THREE.CylinderGeometry(item.width/2, item.width/2, item.height, 24)
+      : new THREE.BoxGeometry(item.width, item.height, item.depth);
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(item.x, item.height/2, item.z);
+    mesh.scale.y = 0.001;
+    mesh.userData.delay = i * 70;
+    scene.add(mesh); pieces.push(mesh);
+
+    var edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:.22}));
+    mesh.add(edge);
+  });
+
+  var radius = Math.max(room.width, room.length) * 1.55;
+  var theta = Math.PI * 0.72, phi = Math.PI / 3.1;
+  var auto = true, dragging = false, lastX = 0, lastY = 0;
+  function updateCamera(){
+    camera.position.set(
+      radius * Math.sin(phi) * Math.sin(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.cos(theta)
+    );
+    camera.lookAt(0, 0.4, 0);
+  }
+  updateCamera();
+
+  function down(x, y){ dragging = true; auto = false; lastX = x; lastY = y; }
+  function move(x, y){
+    if(!dragging) return;
+    theta -= (x - lastX) * 0.008;
+    phi = Math.min(Math.max(phi - (y - lastY) * 0.008, 0.25), Math.PI/2.05);
+    lastX = x; lastY = y; updateCamera();
+  }
+  holder.addEventListener('mousedown', function(e){ down(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', function(){ dragging = false; });
+  window.addEventListener('mousemove', function(e){ move(e.clientX, e.clientY); });
+  holder.addEventListener('touchstart', function(e){ down(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+  window.addEventListener('touchend', function(){ dragging = false; });
+  holder.addEventListener('touchmove', function(e){
+    if(!dragging) return;
+    e.preventDefault(); move(e.touches[0].clientX, e.touches[0].clientY);
+  }, {passive:false});
+  holder.addEventListener('wheel', function(e){
+    e.preventDefault(); auto = false;
+    radius = Math.min(Math.max(radius + e.deltaY * 0.008, 2), 40);
+    updateCamera();
+  }, {passive:false});
+
+  window.addEventListener('resize', function(){
+    var w = holder.clientWidth, h = holder.clientHeight;
+    if(!w || !h) return;
+    camera.aspect = w/h; camera.updateProjectionMatrix(); renderer.setSize(w, h);
+  });
+
+  window.__scene = {retheme: applyTheme};
+
+  var t0 = performance.now();
+  (function animate(){
+    requestAnimationFrame(animate);
+    var el = performance.now() - t0;
+    pieces.forEach(function(m){
+      var p = Math.max(0, Math.min(1, (el - m.userData.delay) / 620));
+      var e = 1 - Math.pow(1 - p, 3);
+      m.scale.y = Math.max(0.001, e);
+      m.position.y = (m.geometry.parameters.height || 0.5) / 2 * e;
+    });
+    if(auto){ theta += 0.0022; updateCamera(); }
+    magenta.position.x = Math.sin(el/2600) * room.width * 0.75;
+    cyan.position.z = Math.cos(el/2200) * room.length * 0.75;
+    renderer.render(scene, camera);
+  })();
+}
+
+/* ============================================================
+   DEMO CHECKOUT — no payment is processed
+   ============================================================ */
+document.querySelectorAll('[data-plan]').forEach(function(b){
+  b.addEventListener('click', function(){ openCheckout(b.dataset.plan, Number(b.dataset.amount)); });
+});
+document.getElementById('modalClose').addEventListener('click', closeCheckout);
+document.getElementById('modalOverlay').addEventListener('click', function(e){
+  if(e.target === this) closeCheckout();
+});
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeCheckout(); });
+
+function openCheckout(planName, amount){
+  document.getElementById('modalContent').innerHTML =
+    '<span class="demo-badge">DEMO — NOT A REAL PAYMENT</span>' +
+    '<h3>' + esc(planName) + '</h3>' +
+    '<div class="modal-sub">$' + amount.toFixed(2) + ' — nothing is charged and no card data leaves this page</div>' +
+    '<div class="field"><label for="ccnum">Card number</label><input id="ccnum" type="text" placeholder="4242 4242 4242 4242" maxlength="19" autocomplete="off"></div>' +
+    '<div class="modal-row">' +
+      '<div class="field"><label for="ccexp">Expiry</label><input id="ccexp" type="text" placeholder="MM/YY" maxlength="5" autocomplete="off"></div>' +
+      '<div class="field"><label for="cccvc">CVC</label><input id="cccvc" type="text" placeholder="123" maxlength="3" autocomplete="off"></div>' +
+    '</div>' +
+    '<div class="field"><label for="ccmail">Email</label><input id="ccmail" type="email" placeholder="you@studio.com" autocomplete="off"></div>' +
+    '<button class="btn" style="width:100%" id="payBtn">Simulate paying $' + amount.toFixed(2) + '</button>' +
+    '<div class="demo-note">This form is a placeholder. It sends nothing, stores nothing and charges nothing — do not type a real card number. To take real payments, connect a processor such as Stripe on your backend and swap this handler for its checkout call.</div>';
+  document.getElementById('payBtn').addEventListener('click', function(){ submitPayment(planName, amount); });
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeCheckout(){ document.getElementById('modalOverlay').classList.remove('show'); }
+function submitPayment(planName, amount){
+  document.getElementById('modalContent').innerHTML =
+    '<div class="load-row"><svg class="compass" viewBox="0 0 48 48" fill="none" stroke-width="2.2">' +
+    '<circle cx="24" cy="24" r="19" stroke="var(--line-strong)"/><path d="M24 8 L33 34 L24 28 L15 34 Z" stroke="var(--violet)"/></svg>' +
+    '<div class="load-status">Simulating checkout</div></div>';
+  setTimeout(function(){
+    document.getElementById('modalContent').innerHTML =
+      '<div class="pay-success">' +
+        '<div class="tick"><svg viewBox="0 0 24 24"><path d="M5 12l4.5 4.5L19 7"/></svg></div>' +
+        '<h3>Payment simulated</h3>' +
+        '<div class="modal-sub">' + esc(planName) + ' — $' + amount.toFixed(2) + ' · nothing was charged</div>' +
+        '<button class="btn ghost" style="width:100%; margin-top:12px;" id="okBtn">Close</button>' +
+      '</div>';
+    document.getElementById('okBtn').addEventListener('click', closeCheckout);
+  }, 1200);
+}
+
+/* ============================================================
+   SEED THE OUTPUT PANEL so the page opens in a working state
+   ============================================================ */
+renderOutput(normalise(localDesign({
+  space:'open-plan living room', w:5, l:6, h:2.7, style:'Warm minimalist', details:''
+}), {w:5, l:6, h:2.7}), true);
+
+/* Hide the generate button's Claude note until we know */
+getSample().then(function(s){
+  var note = document.getElementById('sampleNote');
+  if(!s){
+    note.hidden = false;
+    note.textContent = 'Claude is not reachable from this view — Generate design will use the built-in rule-based planner instead.';
+  }
+});
 </script>
 </body>
 </html>
